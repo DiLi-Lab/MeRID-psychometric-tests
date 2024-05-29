@@ -1,0 +1,45 @@
+grid:
+  height: 0.825
+  width: 0.825
+  n_rows: 10
+  n_cols: 10
+  line_width: 2
+
+dots:
+  size: 0.065                # dot size
+      
+sequences:
+  padding: 1                # min distance of generated dot from grid border
+
+practice: [[[1, 4], [5, 7]], [[3, 3], [0, 1]]]
+    
+trials:
+  n_dots_list: [2, 3, 4, 5, 6]
+  n_far: 3
+  n_near: 3
+
+date_format: '%Y/%m/%d %H:%M'   # this is only relevant for the result file
+
+timing:
+  fixation_cross: 1.0       # onscreen duration of fixation cross on trial start
+  init_trial: 0.5           # blank grid duration before presentation
+  dot: 0.9                  # onscreen duration of each presented dot
+  inter_item: 0.1           # blank grid duration between each dot
+  draw_request: 1.0         # onscreen duration of draw request text
+  inter_trial: 1.0          # blank screen duration between each trial
+  after_break: 2.0          # blank screen duration after self paced break
+
+text:
+  fixation_cross:
+    font: 'Arial'
+    size: 0.05
+  end_text:
+    font: 'Arial Unicode MS'
+    size: 0.14
+  draw_text:
+    font: 'Arial Unicode MS'
+    size: 0.065
+  next_button:
+    font: 'Arial Unicode MS'
+    size: 0.05
+    position: [0, -0.45]

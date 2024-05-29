@@ -1,0 +1,41 @@
+# positional configuration for rectangular frames
+frames:
+  width: 0.266
+  height: 0.25
+  locations:
+    2: [[-0.267, 0], [0.267, 0]]
+    3: [[-0.4, 0], [0, 0], [0.4, 0]]
+    4: [[-0.267, 0.1675], [0.267, 0.1675],
+        [-0.267, -0.1675], [0.267, -0.1675]]
+    5: [[-0.4, 0.1675], [0, 0.1675], [0.4, 0.1675],
+        [-0.267, -0.1675], [0.267, -0.1675]]
+    6: [[-0.4, 0.1675], [0, 0.1675], [0.4, 0.1675],
+        [-0.4, -0.1675], [0, -0.1675], [0.4, -0.1675]]
+  units: 'height'
+
+# configuration for practice trials
+practice:
+  set_sizes: [2, 3]
+  n_operations: [4, 3]
+
+# configuration for actual trials
+trials:
+  set_sizes: [3, 4, 3, 4, 5, 4, 5, 3, 5, 3, 3, 5, 4, 4, 5]
+  n_operations: [3, 4, 6, 5, 5, 3, 2, 2, 3, 5, 4, 4, 6, 2, 6]
+  # this is only relevant for the result file.
+  # changing it won't work with the R-script!
+  max_set_size: 6
+
+# timing configuration for experiment
+timing:
+  init_trial: 1.0            # blank frame duration before first presentation
+  digit: 1.0                 # onscreen duration of each presented digit
+  operation: 1.3             # onscreen duration of each presented operation
+  inter_item: 0.25           # blank frame duration between each presentation
+  recall: 1.0                # onscreen duration of recalled response
+  inter_trial: 1.0           # blank screen duration between each trial
+
+# text configuration
+text:
+  font: 'Arial'
+  size: 0.075

@@ -1,0 +1,51 @@
+alphabet:
+  [b, c, d, f, g, h, j, k, l, m, n, p, r, s, t, v, w, x, z]
+
+allowed_keys:
+  [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z]
+
+trials:
+  n_trials_per_condition: 3
+  list_lengths: [4, 5, 6, 7, 8]
+  shuffle: True
+  # this is only relevant for the result file.
+  # changing it won't work with the R-script!
+  max_list_length: 8
+
+practice:
+  n_trials_per_condition: 1
+  list_lengths: [3, 4, 5]
+  shuffle: False
+
+equations:
+  operators: [+, -]
+  operand_left_min: 1
+  operand_left_max: 10
+  operand_right_min: 1
+  operand_right_max: 10
+  valid_result_min: 1
+  valid_result_max: 20
+
+key_map:
+  False: left
+  True: right
+
+timing:
+  init_trial: 1.5           # fixation cross duration before first presentation
+  equation: 3.0             # maximum display duration for equation response
+  letter: 1.0               # onscreen duration of presented letter
+  inter_item: 0.1           # blank screen duration between letter and equation
+  recall: 0.2               # onscreen duration of recalled response
+  inter_trial: 0.5          # blank screen duration between each trial
+  after_break: 2.0          # blank screen duration after self paced break
+
+text:
+  letters:
+    font: 'Arial'
+    size: 0.095
+  equations:
+    font: 'Arial'
+    size: 0.095
+  fixation_cross:
+    font: 'Arial'
+    size: 0.095
