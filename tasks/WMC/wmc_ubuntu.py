@@ -75,7 +75,7 @@ else:
     core.quit()
 
 # Create folder name for the results
-results_folder = f"{participant_id}_{language}_{country_code}_{lab_number}_S{expInfo['session_id']}"
+results_folder = f"{participant_id}_{language}_{country_code}_{lab_number}_PT{expInfo['session_id']}"
 
 # Create folder for audio and csv data
 output_path = f'data/psychometric_test_{language}_{country_code}_{lab_number}/WMC/{results_folder}/'
@@ -84,7 +84,7 @@ os.makedirs(output_path, exist_ok=True)
 # Data file name stem = absolute path + name; later add .psyexp, .csv, .log, etc
 filename = f"{output_path}" \
            f"{language}{country_code}{lab_number}" \
-           f"_{participant_id}_S{expInfo['session_id']}_{date}"
+           f"_{participant_id}_PT{expInfo['session_id']}_{date}"
 
 # An ExperimentHandler isn't essential but helps with data saving
 thisExp = data.ExperimentHandler(name='WMC', version='',

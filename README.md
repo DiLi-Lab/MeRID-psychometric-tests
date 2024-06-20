@@ -15,8 +15,7 @@ In this repository, we will cover the following psychometric tests:
 5. **PLAB test**: The PLAB test is Pimsleur Language Aptitude Battery test. It is a test of language aptitude that is designed to measure an individual's ability to learn a foreign language.
 6. **WikiVocab**: The WikiVocab test is a test of vocabulary knowledge that is based on the Wikipedia corpus. It is designed to measure the breadth of an individual's vocabulary knowledge.
 7. **Peabody Picture Vocabulary Test (PPVT)**: The PPVT is a test of receptive vocabulary that is designed to measure an individual's ability to understand and use words. It is widely used in clinical and educational settings to assess language development and cognitive abilities.
-8. **Wisconsin Card Sorting Test (WCST)**: The WCST is a test of cognitive flexibility that is designed to measure an individual's ability to adapt to changing rules and conditions. It is widely used in clinical and research settings to assess executive function and cognitive control.
-
+8. **Berg Card Sorting Test (BCST)**: The BCST is a test of cognitive flexibility that is designed to measure an individual's ability to adapt to changing rules and conditions. It is widely used in clinical and research settings to assess executive function and cognitive control.
 ## Quick Start
 
 ### Clone the repository
