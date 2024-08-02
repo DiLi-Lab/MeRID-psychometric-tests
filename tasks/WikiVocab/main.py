@@ -159,7 +159,7 @@ class MyMainWindow(QMainWindow):
         self.stimulus_shown_time = time.time()  # Capture the time for the new stimulus
 
     def prepare_data(self) -> None:
-        self.data_df = pd.read_csv(f"tasks/WikiVocab/data/{self.language}.csv", encoding="utf-8")
+        self.data_df = pd.read_csv(f"tasks/WikiVocab/vocab/{self.language}.csv", encoding="utf-8")
         self.data_df = self.data_df.sample(NUM_OF_WORDS, ignore_index=True, replace=False)
 
         self.result_df = pd.DataFrame(
