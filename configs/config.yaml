@@ -11,4 +11,4 @@ stroop_flanker: False  # Alternative: False, if you want to run the experiment w
 plab: True   # Alternative: False, if you want to run the experiment without the PLAB tasks.
 peabody: True   # Alternative: False, if you want to run the experiment without the Peabody Picture Vocabulary Test.
 wiki_vocab: True    # Alternative: False, if you want to run the experiment without the WikiVocab tasks.
-wcst: True  # Alternative: False, if you want to run the experiment without the Wisconsin Card Sorting Test.
+wcst: True  # Alternative: False, if you want to run the experiment without the Berg Card Sorting Test.

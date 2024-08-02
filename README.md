@@ -124,6 +124,7 @@ stroop_flanker: False
 plab: True
 peabody: False
 wcst: False
+wiki_vocab: False
 ```
 6. Run the tests with the following command as for English:
 ```bash
@@ -155,7 +156,7 @@ python run_merid_psychometric_tests.py
 │   ├── PLAB                     <- PLAB scripts
 │   ├── RAN                      <- RAN scripts
 │   ├── Stroop-Flanker           <- Stroop and Flanker scripts
-│   ├── WikiVocab                <- WikiVocab scripts (under development)
+│   ├── WikiVocab                <- WikiVocab scripts
 │   ├── WMC                      <- WMC scripts
 │   ├── Peabody                  <- Peabody scripts
 │   └── WCST                     <- WCST scripts
