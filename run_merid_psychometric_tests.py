@@ -237,7 +237,7 @@ if __name__ == '__main__':
     os.makedirs(experiment_config_folder, exist_ok=True)
     participant_config_path = f'{experiment_config_folder}/' \
                               f'{arguments["participant_id"]:03}_{arguments["language"]}_{arguments["country_code"]}' \
-                              f'_{arguments["lab_number"]}_S{arguments["session_id"]}.yaml'
+                              f'_{arguments["lab_number"]}_PT{arguments["session_id"]}.yaml'
     with open(experiment_config_path, 'w', encoding='utf-8') as file:  # cache the arguments
         yaml.dump(arguments, file)
 
