@@ -711,116 +711,116 @@ thisExp.nextEntry()
 routineTimer.reset()
 
 
-# ------Prepare to start Routine "GoodbyeScreen"-------
-continueRoutine = True
-routineTimer.add(10.000000)
-# update component parameters for each repeat
-key_goodbye.keys = []
-key_goodbye.rt = []
-_key_goodbye_allKeys = []
-# keep track of which components have finished
-GoodbyeScreenComponents = [Goodbyetext, key_goodbye]
-for thisComponent in GoodbyeScreenComponents:
-    thisComponent.tStart = None
-    thisComponent.tStop = None
-    thisComponent.tStartRefresh = None
-    thisComponent.tStopRefresh = None
-    if hasattr(thisComponent, 'status'):
-        thisComponent.status = NOT_STARTED
-# reset timers
-t = 0
-_timeToFirstFrame = win.getFutureFlipTime(clock="now")
-GoodbyeScreenClock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
-frameN = -1
-
-# -------Run Routine "GoodbyeScreen"-------
-while continueRoutine and routineTimer.getTime() > 0:
-    # get current time
-    t = GoodbyeScreenClock.getTime()
-    tThisFlip = win.getFutureFlipTime(clock=GoodbyeScreenClock)
-    tThisFlipGlobal = win.getFutureFlipTime(clock=None)
-    frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
-    # update/draw components on each frame
-    
-    # *Goodbyetext* updates
-    if Goodbyetext.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        Goodbyetext.frameNStart = frameN  # exact frame index
-        Goodbyetext.tStart = t  # local t and not account for scr refresh
-        Goodbyetext.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(Goodbyetext, 'tStartRefresh')  # time at next scr refresh
-        Goodbyetext.setAutoDraw(True)
-    if Goodbyetext.status == STARTED:
-        # is it time to stop? (based on global clock, using actual start)
-        if tThisFlipGlobal > Goodbyetext.tStartRefresh + 10-frameTolerance:
-            # keep track of stop time/frame for later
-            Goodbyetext.tStop = t  # not accounting for scr refresh
-            Goodbyetext.frameNStop = frameN  # exact frame index
-            win.timeOnFlip(Goodbyetext, 'tStopRefresh')  # time at next scr refresh
-            Goodbyetext.setAutoDraw(False)
-    
-    # *key_goodbye* updates
-    waitOnFlip = False
-    if key_goodbye.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        key_goodbye.frameNStart = frameN  # exact frame index
-        key_goodbye.tStart = t  # local t and not account for scr refresh
-        key_goodbye.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(key_goodbye, 'tStartRefresh')  # time at next scr refresh
-        key_goodbye.status = STARTED
-        # keyboard checking is just starting
-        waitOnFlip = True
-        win.callOnFlip(key_goodbye.clock.reset)  # t=0 on next screen flip
-        win.callOnFlip(key_goodbye.clearEvents, eventType='keyboard')  # clear events on next screen flip
-    if key_goodbye.status == STARTED:
-        # is it time to stop? (based on global clock, using actual start)
-        if tThisFlipGlobal > key_goodbye.tStartRefresh + 10-frameTolerance:
-            # keep track of stop time/frame for later
-            key_goodbye.tStop = t  # not accounting for scr refresh
-            key_goodbye.frameNStop = frameN  # exact frame index
-            win.timeOnFlip(key_goodbye, 'tStopRefresh')  # time at next scr refresh
-            key_goodbye.status = FINISHED
-    if key_goodbye.status == STARTED and not waitOnFlip:
-        theseKeys = key_goodbye.getKeys(keyList=['space'], waitRelease=False)
-        _key_goodbye_allKeys.extend(theseKeys)
-        if len(_key_goodbye_allKeys):
-            key_goodbye.keys = _key_goodbye_allKeys[-1].name  # just the last key pressed
-            key_goodbye.rt = _key_goodbye_allKeys[-1].rt
-            # a response ends the routine
-            continueRoutine = False
-    
-    # check for quit (typically the Esc key)
-    if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
-        core.quit()
-    
-    # check if all components have finished
-    if not continueRoutine:  # a component has requested a forced-end of Routine
-        break
-    continueRoutine = False  # will revert to True if at least one component still running
-    for thisComponent in GoodbyeScreenComponents:
-        if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-            continueRoutine = True
-            break  # at least one component has not yet finished
-    
-    # refresh the screen
-    if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-        win.flip()
-
-# -------Ending Routine "GoodbyeScreen"-------
-for thisComponent in GoodbyeScreenComponents:
-    if hasattr(thisComponent, "setAutoDraw"):
-        thisComponent.setAutoDraw(False)
-thisExp.addData('Goodbyetext.started', Goodbyetext.tStartRefresh)
-thisExp.addData('Goodbyetext.stopped', Goodbyetext.tStopRefresh)
-# check responses
-if key_goodbye.keys in ['', [], None]:  # No response was made
-    key_goodbye.keys = None
-thisExp.addData('key_goodbye.keys',key_goodbye.keys)
-if key_goodbye.keys != None:  # we had a response
-    thisExp.addData('key_goodbye.rt', key_goodbye.rt)
-thisExp.addData('key_goodbye.started', key_goodbye.tStartRefresh)
-thisExp.addData('key_goodbye.stopped', key_goodbye.tStopRefresh)
-thisExp.nextEntry()
+# # ------Prepare to start Routine "GoodbyeScreen"-------
+# continueRoutine = True
+# routineTimer.add(10.000000)
+# # update component parameters for each repeat
+# key_goodbye.keys = []
+# key_goodbye.rt = []
+# _key_goodbye_allKeys = []
+# # keep track of which components have finished
+# GoodbyeScreenComponents = [Goodbyetext, key_goodbye]
+# for thisComponent in GoodbyeScreenComponents:
+#     thisComponent.tStart = None
+#     thisComponent.tStop = None
+#     thisComponent.tStartRefresh = None
+#     thisComponent.tStopRefresh = None
+#     if hasattr(thisComponent, 'status'):
+#         thisComponent.status = NOT_STARTED
+# # reset timers
+# t = 0
+# _timeToFirstFrame = win.getFutureFlipTime(clock="now")
+# GoodbyeScreenClock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
+# frameN = -1
+#
+# # -------Run Routine "GoodbyeScreen"-------
+# while continueRoutine and routineTimer.getTime() > 0:
+#     # get current time
+#     t = GoodbyeScreenClock.getTime()
+#     tThisFlip = win.getFutureFlipTime(clock=GoodbyeScreenClock)
+#     tThisFlipGlobal = win.getFutureFlipTime(clock=None)
+#     frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
+#     # update/draw components on each frame
+#
+#     # *Goodbyetext* updates
+#     if Goodbyetext.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
+#         # keep track of start time/frame for later
+#         Goodbyetext.frameNStart = frameN  # exact frame index
+#         Goodbyetext.tStart = t  # local t and not account for scr refresh
+#         Goodbyetext.tStartRefresh = tThisFlipGlobal  # on global time
+#         win.timeOnFlip(Goodbyetext, 'tStartRefresh')  # time at next scr refresh
+#         Goodbyetext.setAutoDraw(True)
+#     if Goodbyetext.status == STARTED:
+#         # is it time to stop? (based on global clock, using actual start)
+#         if tThisFlipGlobal > Goodbyetext.tStartRefresh + 10-frameTolerance:
+#             # keep track of stop time/frame for later
+#             Goodbyetext.tStop = t  # not accounting for scr refresh
+#             Goodbyetext.frameNStop = frameN  # exact frame index
+#             win.timeOnFlip(Goodbyetext, 'tStopRefresh')  # time at next scr refresh
+#             Goodbyetext.setAutoDraw(False)
+#
+#     # *key_goodbye* updates
+#     waitOnFlip = False
+#     if key_goodbye.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
+#         # keep track of start time/frame for later
+#         key_goodbye.frameNStart = frameN  # exact frame index
+#         key_goodbye.tStart = t  # local t and not account for scr refresh
+#         key_goodbye.tStartRefresh = tThisFlipGlobal  # on global time
+#         win.timeOnFlip(key_goodbye, 'tStartRefresh')  # time at next scr refresh
+#         key_goodbye.status = STARTED
+#         # keyboard checking is just starting
+#         waitOnFlip = True
+#         win.callOnFlip(key_goodbye.clock.reset)  # t=0 on next screen flip
+#         win.callOnFlip(key_goodbye.clearEvents, eventType='keyboard')  # clear events on next screen flip
+#     if key_goodbye.status == STARTED:
+#         # is it time to stop? (based on global clock, using actual start)
+#         if tThisFlipGlobal > key_goodbye.tStartRefresh + 10-frameTolerance:
+#             # keep track of stop time/frame for later
+#             key_goodbye.tStop = t  # not accounting for scr refresh
+#             key_goodbye.frameNStop = frameN  # exact frame index
+#             win.timeOnFlip(key_goodbye, 'tStopRefresh')  # time at next scr refresh
+#             key_goodbye.status = FINISHED
+#     if key_goodbye.status == STARTED and not waitOnFlip:
+#         theseKeys = key_goodbye.getKeys(keyList=['space'], waitRelease=False)
+#         _key_goodbye_allKeys.extend(theseKeys)
+#         if len(_key_goodbye_allKeys):
+#             key_goodbye.keys = _key_goodbye_allKeys[-1].name  # just the last key pressed
+#             key_goodbye.rt = _key_goodbye_allKeys[-1].rt
+#             # a response ends the routine
+#             continueRoutine = False
+#
+#     # check for quit (typically the Esc key)
+#     if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
+#         core.quit()
+#
+#     # check if all components have finished
+#     if not continueRoutine:  # a component has requested a forced-end of Routine
+#         break
+#     continueRoutine = False  # will revert to True if at least one component still running
+#     for thisComponent in GoodbyeScreenComponents:
+#         if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
+#             continueRoutine = True
+#             break  # at least one component has not yet finished
+#
+#     # refresh the screen
+#     if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
+#         win.flip()
+#
+# # -------Ending Routine "GoodbyeScreen"-------
+# for thisComponent in GoodbyeScreenComponents:
+#     if hasattr(thisComponent, "setAutoDraw"):
+#         thisComponent.setAutoDraw(False)
+# thisExp.addData('Goodbyetext.started', Goodbyetext.tStartRefresh)
+# thisExp.addData('Goodbyetext.stopped', Goodbyetext.tStopRefresh)
+# # check responses
+# if key_goodbye.keys in ['', [], None]:  # No response was made
+#     key_goodbye.keys = None
+# thisExp.addData('key_goodbye.keys',key_goodbye.keys)
+# if key_goodbye.keys != None:  # we had a response
+#     thisExp.addData('key_goodbye.rt', key_goodbye.rt)
+# thisExp.addData('key_goodbye.started', key_goodbye.tStartRefresh)
+# thisExp.addData('key_goodbye.stopped', key_goodbye.tStopRefresh)
+# thisExp.nextEntry()
 
 # Flip one final time so any remaining win.callOnFlip() 
 # and win.timeOnFlip() tasks get executed before quitting

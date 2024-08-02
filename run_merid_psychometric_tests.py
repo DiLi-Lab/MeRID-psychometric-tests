@@ -34,8 +34,8 @@ ran = config_data['ran']
 stroop_flanker = config_data['stroop_flanker']
 plab = config_data['plab']
 peabody = config_data['peabody']
+wiki_vocab = config_data['wiki_vocab']
 wcst = config_data['wcst']
-
 
 LANG_DIR = f'{PARENT_FOLDER}/languages/{language}/ui_data/interface_language/'
 IMAGE_DIR = f'{PARENT_FOLDER}/languages/{language}/ui_data/interface_icons/'
@@ -120,7 +120,7 @@ def parse_args():
     participants.add_argument(
         '--session-id',
         metavar='Session ID',
-        default=2,
+        default=1,
         type=int,
         widget='TextField',
         help='Enter the session ID (1-9).',
@@ -148,8 +148,8 @@ def parse_args():
     # Main tests checkbox
     tests.add_argument(
         '--wmc',
-        metavar='Working Memory Capacity Battery (WMC)',
-        help='Working Memory Capacity Battery (WMC) test',
+        metavar=translations['wmc'],
+        help=translations['wmc_help'],
         default=wmc,
         required=False,
         action='store_true',
@@ -158,8 +158,8 @@ def parse_args():
 
     tests.add_argument(
         '--ran',
-        metavar='RAN',
-        help='Rapid Automatized Naming (RAN) task',
+        metavar=translations['ran'],
+        help=translations['ran_help'],
         default=ran,
         required=False,
         action='store_true',
@@ -168,8 +168,8 @@ def parse_args():
 
     tests.add_argument(
         '--stroop_flanker',
-        metavar='Stroop and Flanker',
-        help='Stroop and Flanker tasks',
+        metavar=translations['stroop_flanker'],
+        help=translations['stroop_flanker_help'],
         default=stroop_flanker,
         required=False,
         action='store_true',
@@ -177,17 +177,27 @@ def parse_args():
     )
     tests.add_argument(
         '--plab',
-        metavar='PLAB',
-        help='Pimsleur Language Aptitude Battery test',
+        metavar=translations['plab'],
+        help=translations['plab_help'],
         default=plab,
         required=False,
         action='store_true',
         gooey_options={'visible': plab}
     )
     tests.add_argument(
+        '--wiki_vocab',
+        metavar=translations['wiki_vocab'],
+        help=translations['wiki_vocab_help'],
+        default=wiki_vocab,
+        required=False,
+        action='store_true',
+        gooey_options={'visible': wiki_vocab}
+
+    )
+    tests.add_argument(
         '--ppvt',
-        metavar='Peabody',
-        help='Peabody Picture Vocabulary Test',
+        metavar=translations['ppvt'],
+        help=translations['ppvt_help'],
         default=peabody,
         required=False,
         action='store_true',
@@ -195,8 +205,8 @@ def parse_args():
     )
     tests.add_argument(
         '--wcst',
-        metavar='WCST',
-        help='Wisconsin Card Sorting Test',
+        metavar=translations['wcst'],
+        help=translations['wcst_help'],
         default=wcst,
         required=False,
         action='store_true',
@@ -261,6 +271,11 @@ if __name__ == '__main__':
         print("Running PLAB")
         run_script('tasks/PLAB/plab.py')
         arguments['run_plab'] = 'success'
+
+    if arguments['wiki_vocab']:
+        print("Running WikiVocab")
+        run_script('tasks/WikiVocab/app.py')
+        arguments['run_wiki_vocab'] = 'success'
 
     if arguments['ppvt']:
         if Path(f"languages/{language}/instructions/Peabody_instructions_{language}.xlsx").exists():
