@@ -105,7 +105,7 @@ class MyWelcomeWindow(QMainWindow):
     def get_languages(self) -> list:
         result = []
         template = re.compile(r'(.+)\.csv')
-        for file in os.listdir("tasks/WikiVocab/data"):
+        for file in os.listdir("tasks/WikiVocab/vocab"):
             m = template.match(file)
             if m:
                 result.append(m.group(1))
