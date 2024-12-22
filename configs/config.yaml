@@ -5,10 +5,10 @@ country_code: X
 lab_number: 1
 random_seed: 123  # Alternative: None. Random seed for reproducibility across runs and participants. Try to keep this fixed. If you want different random seeds for different participants, you can set this to None and the random seed will be randomly generated.
 font: Arial Unicode MS  # Font used for the experiment. Arial Unicode MS is recommended because it supports a wide range of characters.
-wmc: False  # Alternative: False, if you want to run the experiment without the WMC task.
-ran: True   # Alternative: False, if you want to run the experiment without the RAn tasks.
+ran: True    # Alternative: False, if you want to run the experiment without the RAN tasks.
 stroop_flanker: True  # Alternative: False, if you want to run the experiment without the Stroop and Flanker tasks.
-plab: True   # Alternative: False, if you want to run the experiment without the PLAB tasks.
-peabody: True   # Alternative: False, if you want to run the experiment without the Peabody Picture Vocabulary Test.
+plab: True    # Alternative: False, if you want to run the experiment without the PLAB tasks.
 wiki_vocab: True    # Alternative: False, if you want to run the experiment without the WikiVocab tasks.
-wcst: True  # Alternative: False, if you want to run the experiment without the Berg Card Sorting Test.
+peabody: True    # Alternative: False, if you want to run the experiment without the Peabody Picture Vocabulary Test.
+wcst: True    # Alternative: False, if you want to run the experiment without the Berg Card Sorting Test.
+wmc: False    # Alternative: False, if you want to run the experiment without the WMC task.
