@@ -74,7 +74,7 @@ save_csv_path = output_path
 recording = []
 recording_start_time = 0
 # Configuration of the digit task
-num_trials = 8
+num_trials = 2
 
 
 # Function to start recording audio asynchronously

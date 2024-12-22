@@ -6,16 +6,17 @@
 
 Psychometric tests are a standard and scientific method used to measure individuals' mental capabilities and behavioural style. They identify the extent to which candidates' personality and cognitive abilities match those required to perform the role. Employers use the information collected from the psychometric test to identify the hidden aspects of candidates that are difficult to extract from a face-to-face interview.
 
-In this repository, we will cover the following psychometric tests:
+In this repository, we will cover the following psychometric tests. In the MeRID project 1st session, we run the first 7 tests as ordered below after the reading experiment; in the 2nd session, we run the last test -- Lewandowsky WMC battery, after reading part.
 
-1. **Lewandowsky WMC battery** : Working Memory Capacity (WMC) is a measure of the amount of information that can be held in mind and processed at one time. It is a key component of cognitive control and is strongly related to general intelligence. The Lewandowsky WMC battery is a set of tasks that measure WMC. The battery consists of four tasks: Memory Update, Operation Span, Sentence Span, and Spatial Short-Term Memory.
-2. **RAN task**: The Rapid Automatized Naming (RAN) task is a test of the speed and efficiency of naming digits. It is used to assess the speed of processing and the ability to quickly retrieve information from memory.
-3. **Stroop**: The Stroop test is a test of cognitive control that measures the ability to inhibit automatic responses. The test consists of three parts: a color naming task, a word reading task, and a color-word naming task.
-4. **Flanker**: The Flanker test is a test of cognitive control that measures the ability to inhibit irrelevant information. The test consists of a series of trials in which participants must respond to a central target while ignoring flanking distractors.
-5. **PLAB test**: The PLAB test is Pimsleur Language Aptitude Battery test. It is a test of language aptitude that is designed to measure an individual's ability to learn a foreign language.
-6. **WikiVocab**: The WikiVocab test is a test of vocabulary knowledge that is based on the Wikipedia corpus. It is designed to measure the breadth of an individual's vocabulary knowledge.
-7. **Peabody Picture Vocabulary Test (PPVT)**: The PPVT is a test of receptive vocabulary that is designed to measure an individual's ability to understand and use words. It is widely used in clinical and educational settings to assess language development and cognitive abilities.
-8. **Berg Card Sorting Test (BCST)**: The BCST is a test of cognitive flexibility that is designed to measure an individual's ability to adapt to changing rules and conditions. It is widely used in clinical and research settings to assess executive function and cognitive control.
+1. **RAN task**: The Rapid Automatized Naming (RAN) task is a test of the speed and efficiency of naming digits. It is used to assess the speed of processing and the ability to quickly retrieve information from memory.
+2. **Stroop**: The Stroop test is a test of cognitive control that measures the ability to inhibit automatic responses. The test consists of three parts: a color naming task, a word reading task, and a color-word naming task.
+3. **Flanker**: The Flanker test is a test of cognitive control that measures the ability to inhibit irrelevant information. The test consists of a series of trials in which participants must respond to a central target while ignoring flanking distractors.
+4. **PLAB test**: The PLAB test is Pimsleur Language Aptitude Battery test. It is a test of language aptitude that is designed to measure an individual's ability to learn a foreign language.
+5. **WikiVocab**: The WikiVocab test is a test of vocabulary knowledge that is based on the Wikipedia corpus. It is designed to measure the breadth of an individual's vocabulary knowledge.
+6. **Peabody Picture Vocabulary Test (PPVT)**: The PPVT is a test of receptive vocabulary that is designed to measure an individual's ability to understand and use words. It is widely used in clinical and educational settings to assess language development and cognitive abilities.
+7. **Berg Card Sorting Test (BCST)**: The BCST is a test of cognitive flexibility that is designed to measure an individual's ability to adapt to changing rules and conditions. It is widely used in clinical and research settings to assess executive function and cognitive control.
+8. **Lewandowsky WMC battery** : Working Memory Capacity (WMC) is a measure of the amount of information that can be held in mind and processed at one time. It is a key component of cognitive control and is strongly related to general intelligence. The Lewandowsky WMC battery is a set of tasks that measure WMC. The battery consists of four tasks: Memory Update, Operation Span, Sentence Span, and Spatial Short-Term Memory.
+
 ## Quick Start
 
 ### Clone the repository
