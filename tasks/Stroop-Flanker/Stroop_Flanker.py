@@ -186,7 +186,7 @@ stroop_practice_key = keyboard.Keyboard()
 stroop_practice_feedbackClock = core.Clock()
 stroop_feedback_text = visual.TextStim(win=win, name='stroop_feedback_text',
     text='',
-    font='Courier New',
+    font='Arial Unicode MS',
     pos=(0, 0), height=0.1, wrapWidth=None, ori=0.0, 
     color='white', colorSpace='rgb', opacity=None, 
     languageStyle='LTR',
@@ -251,7 +251,7 @@ Flanker_practice_key = keyboard.Keyboard()
 Flanker_practice_feedbackClock = core.Clock()
 Flanker_feedback_text = visual.TextStim(win=win, name='flanker_feedback_text',
     text='',
-    font='Courier New',
+    font='Arial Unicode MS',
     pos=(0, 0), height=0.1, wrapWidth=None, ori=0.0,
     color='white', colorSpace='rgb', opacity=None,
     languageStyle='LTR',
