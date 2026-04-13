@@ -1,0 +1,38 @@
+This software contains code derived from the VocabTest project.
+
+Original Project: VocabTest
+Source URL: https://github.com/polvanrijn/VocabTest
+Online Interface: https://vocabtest.org/
+
+Citation:
+@inproceedings{rijn_around_2023,
+    author = {Rijn, Pol van and Sun, Yue and Lee, Harin and Marjieh, Raja and Sucholutsky, Ilia and Lanzarini, Francesca and André, Elisabeth and Jacoby, Nori},
+    title = {Around the world in 60 words: {A} generative vocabulary test for online research},
+    booktitle = {{Proceedings of the 45th Annual Conference of the Cognitive Science Society}},
+    publisher={The Cognitive Science Society},
+    year = {2023}
+}
+
+Modifications made to the original code:
+
+1. Framework Change
+   - Replaced web-based interface (JavaScript/Python backend) with PyQt6 desktop application
+   - Changed from online storage to local data storage
+
+2. Data Source
+   - Uses bundled CSV vocabulary files instead of downloading from online sources
+   - Pre-packaged vocab files for multiple languages included in vocab/ directory
+
+3. Local Administration
+   - Added support for local participant folder management
+   - Command-line argument for participant folder path
+
+4. UI Adaptations
+   - Modified window titles and layout for local testing
+   - Added result export functionality
+
+Note: The original VocabTest project does not include a LICENSE file.
+This implementation is provided for local administration and offline use
+with proper attribution to the original authors.
+
+Original code Copyright (C) Pol van Rijn et al.

@@ -3,26 +3,23 @@
 from __future__ import annotations
 
 import json
-import os
-from pathlib import Path
 import platform
 import subprocess
-from psychopy import sound, gui, visual, core, data, event, logging, clock, colors
-
-from gooey import Gooey, GooeyParser
+import sys
+from pathlib import Path
 
 import yaml
-import sys
+from gooey import Gooey, GooeyParser
+from psychopy import core
 
-
-PARENT_FOLDER = Path(__file__).parent
+PARENT_FOLDER = Path(__file__).resolve().parent
 
 # Path to the YAML file contains the language and experiment configurations
-config_path = f'{PARENT_FOLDER}/configs/config.yaml'
-experiment_config_path = f'{PARENT_FOLDER}/configs/experiment.yaml'
+CONFIG_PATH = PARENT_FOLDER / 'configs' / 'config.yaml'
+EXPERIMENT_CONFIG_PATH = PARENT_FOLDER / 'configs' / 'experiment.yaml'
 
 # Load the YAML file
-with open(config_path, 'r', encoding="utf-8") as file:
+with CONFIG_PATH.open('r', encoding='utf-8') as file:
     config_data = yaml.safe_load(file)
 language = config_data['language']
 full_language = config_data['full_language']
@@ -33,19 +30,20 @@ wmc = config_data['wmc']
 ran = config_data['ran']
 stroop_flanker = config_data['stroop_flanker']
 plab = config_data['plab']
-peabody = config_data['peabody']
 wiki_vocab = config_data['wiki_vocab']
+peabody = config_data['peabody']
 wcst = config_data['wcst']
 
-LANG_DIR = f'{PARENT_FOLDER}/languages/{language}/ui_data/interface_language/'
-IMAGE_DIR = f'{PARENT_FOLDER}/languages/{language}/ui_data/interface_icons/'
-if not os.path.exists(f'{LANG_DIR}/experiment_interface_{language.lower()}.json'):
+LANG_DIR = PARENT_FOLDER / 'languages' / language / 'ui_data' / 'interface_language'
+IMAGE_DIR = PARENT_FOLDER / 'languages' / language / 'ui_data' / 'interface_icons'
+if not (LANG_DIR / f'experiment_interface_{language.lower()}.json').exists():
     GUI_LANG = 'experiment_interface_en'
 else:
     GUI_LANG = f'experiment_interface_{language.lower()}'
 
-with open(f'{LANG_DIR}/{GUI_LANG}.json', 'r', encoding='utf-8') as translation_file:
+with (LANG_DIR / f'{GUI_LANG}.json').open('r', encoding='utf-8') as translation_file:
     translations = json.load(translation_file)
+
 
 @Gooey(
     language=GUI_LANG,
@@ -62,18 +60,17 @@ def parse_args():
     )
 
     lab_settings = parser.add_argument_group(
-        'Lab Settings',
-        description=f'At the moment you will run the experiment with the language settings below. '
-                    f'Review and modify the language settings below if they differ from your pre-registration form.',
-        gooey_options={
-            'show_underline': False,
-        },
+        translations['lab_settings'],
+        description=translations['lab_settings_desc'],
+        # gooey_options={
+        #     'show_underline': False,
+        # },
     )
     lab_settings.add_argument(
         '--language',
         widget='TextField',
-        metavar='Language',
-        help='Enter the 2-letter ISO-639-1 language code (e.g., EN, DE).',
+        metavar=translations['language'],
+        help=translations['language_help'],
         default=language,
         required=True,
         gooey_options={'visible': True},
@@ -81,16 +78,16 @@ def parse_args():
     lab_settings.add_argument(
         '--full_language',
         widget='TextField',
-        help='Enter the full name of the language (e.g., English, German).',
-        metavar='Full language',
+        help=translations['full_language_help'],
+        metavar=translations['full_language'],
         default=full_language,
         required=True,
         gooey_options={'visible': True},
     )
     lab_settings.add_argument(
         '--country_code',
-        help='Enter the 2-letter ISO-3166-1 country code (e.g., US, DE).',
-        metavar='Country code',
+        help=translations['country_code_help'],
+        metavar=translations['country_code'],
         widget='TextField',
         default=country_code,
         required=True,
@@ -98,53 +95,65 @@ def parse_args():
     )
     lab_settings.add_argument(
         '--lab_number',
-        metavar='Lab number',
-        help='Enter your lab number as in the pre-registration form.',
+        metavar=translations['lab_number'],
+        help=translations['lab_number_help'],
         widget='TextField',
         default=1,
         type=int,
         required=True,
         gooey_options={'visible': True}
     )
-    participants = parser.add_argument_group('Participant Information')
+
+    lab_settings.add_argument(
+        '--year',
+        metavar=translations['year'],
+        help=translations['year_help'],
+        widget='TextField',
+        default=config_data['year'],
+        type=int,
+        required=True,
+        gooey_options={'visible': True}
+    )
+
+    participants = parser.add_argument_group(translations['participants'])
     participants.add_argument(
         '--participant-id',
-        metavar='Participant ID',
+        metavar=translations['participant_id'],
         # default=1,
         type=int,
         widget='TextField',
-        help='Enter the participant ID (1-999).',
+        help=translations['participant_id_help'],
         required=True,
         gooey_options={'visible': True}
     )
     participants.add_argument(
         '--session-id',
-        metavar='Session ID',
-        default=1,
+        metavar=translations['session_id'],
         type=int,
         widget='TextField',
-        help='Enter the session ID (1-9).',
+        help=translations['session_id_help'] + " (Must be 1 or 2)",
         required=True,
         gooey_options={'visible': True}
     )
-    participants.add_argument(
-        '--random_seed',
-        metavar='Random Seed',
-        default=random_seed,
-        type=int,
-        widget='TextField',
-        help='Random seed has to be a number between 1 and 9999.'
-             'It is used to reproduce the same random sequence and numbers for the WMC and RAN experiments.'
-             'If you want to change the random seed, please edit the config.yaml file in the configs folder.',
-        required=True,
-        gooey_options={'visible': True}
-    )
+
+    # participants.add_argument(
+    #     '--random_seed',
+    #     metavar='Random Seed',
+    #     default=random_seed,
+    #     type=int,
+    #     widget='TextField',
+    #     help='Random seed has to be a number between 1 and 9999.'
+    #          'It is used to reproduce the same random sequence and numbers for the WMC and RAN experiments.'
+    #          'If you want to change the random seed, please edit the config.yaml file in the configs folder.',
+    #     required=True,
+    #     gooey_options={'visible': True}
+    # )
     # add an argument for each test. Tests are WMC, Peabody, PLAB, RAN, StroopFlanker
     tests = parser.add_argument_group('Psychometric Tests',
                                       description='If you want to change the tests that you want to run, please edit the config.yaml file in the configs folder.')
-    parser.set_defaults(ran=ran)
-    parser.set_defaults(stroop_flanker=stroop_flanker)
-    parser.set_defaults(plab=plab)
+    # parser.set_defaults(ran=ran)
+    # parser.set_defaults(stroop_flanker=stroop_flanker)
+    # parser.set_defaults(plab=plab)
     # Main tests checkbox
     tests.add_argument(
         '--wmc',
@@ -152,7 +161,7 @@ def parse_args():
         help=translations['wmc_help'],
         default=wmc,
         required=False,
-        action='store_true',
+        action='store_true' if not wmc else 'store_false',
         gooey_options={'visible': wmc}
     )
 
@@ -162,7 +171,7 @@ def parse_args():
         help=translations['ran_help'],
         default=ran,
         required=False,
-        action='store_true',
+        action='store_true' if not ran else 'store_false',
         gooey_options={'visible': ran}
     )
 
@@ -172,7 +181,7 @@ def parse_args():
         help=translations['stroop_flanker_help'],
         default=stroop_flanker,
         required=False,
-        action='store_true',
+        action='store_true' if not stroop_flanker else 'store_false',
         gooey_options={'visible': stroop_flanker}
     )
     tests.add_argument(
@@ -181,7 +190,7 @@ def parse_args():
         help=translations['plab_help'],
         default=plab,
         required=False,
-        action='store_true',
+        action='store_true' if not plab else 'store_false',
         gooey_options={'visible': plab}
     )
     tests.add_argument(
@@ -190,109 +199,182 @@ def parse_args():
         help=translations['wiki_vocab_help'],
         default=wiki_vocab,
         required=False,
-        action='store_true',
+        action='store_true' if not wiki_vocab else 'store_false',
         gooey_options={'visible': wiki_vocab}
-
     )
     tests.add_argument(
         '--ppvt',
-        metavar=translations['ppvt'],
-        help=translations['ppvt_help'],
+        metavar=translations.get('ppvt', 'PPVT'),
+        help=translations.get('ppvt_help', 'Run the PPVT (Peabody Picture Vocabulary Test) task.'),
         default=peabody,
         required=False,
-        action='store_true',
+        action='store_true' if not peabody else 'store_false',
         gooey_options={'visible': peabody}
     )
     tests.add_argument(
         '--wcst',
-        metavar=translations['wcst'],
-        help=translations['wcst_help'],
+        metavar=translations.get('wcst', 'WCST'),
+        help=translations.get('wcst_help', 'Run the WCST (Wisconsin Card Sorting Test) task.'),
         default=wcst,
         required=False,
-        action='store_true',
+        action='store_true' if not wcst else 'store_false',
         gooey_options={'visible': wcst}
     )
     args = vars(parser.parse_args())
-    print(args)
+    #print(args)
     return args
 
 
-def run_script(script_path):
+def run_script(script_path: Path, part_folder: str | None = None):
     try:
-        result = subprocess.run(['python', script_path], check=True, text=True, capture_output=False)
+        command = [sys.executable, str(script_path)]
+        if part_folder is not None:
+            command.extend(['--participant_folder', part_folder])
+        result = subprocess.run(command, check=True, text=True, capture_output=False)
         print("Output:", result.stdout)
         print("Errors:", result.stderr)
+
     except subprocess.CalledProcessError as e:
         print("Error:", e.stderr)
         raise e
 
+
 if __name__ == '__main__':
     system = platform.system()
-    print(system)
 
     arguments = parse_args()
     arguments['system'] = system
 
-    experiment_config_folder = f'{PARENT_FOLDER}/data/participant_configs_{language}_{country_code}_{lab_number}/'
-    os.makedirs(experiment_config_folder, exist_ok=True)
-    participant_config_path = f'{experiment_config_folder}/' \
-                              f'{arguments["participant_id"]:03}_{arguments["language"]}_{arguments["country_code"]}' \
-                              f'_{arguments["lab_number"]}_PT{arguments["session_id"]}.yaml'
-    with open(experiment_config_path, 'w', encoding='utf-8') as file:  # cache the arguments
+    study_folder_name = (
+        f'MultiplEYE_{arguments["language"].upper()}_{arguments["country_code"].upper()}_'
+        f'{arguments["lab_number"]}_{arguments["year"]}'
+    )
+    participant_folder_name = (
+        f'{arguments["participant_id"]:03}_{arguments["language"].upper()}_'
+        f'{arguments["country_code"].upper()}_{arguments["lab_number"]}_PT{arguments["session_id"]}'
+    )
+    data_collection_folder = PARENT_FOLDER / 'data' / study_folder_name
+    participant_folder = data_collection_folder / participant_folder_name
+    participant_folder_relative = str(Path(study_folder_name) / participant_folder_name)
+
+    participant_folder.mkdir(parents=True, exist_ok=True)
+    participant_config_path = participant_folder / (
+        f'{arguments["participant_id"]:03}_{arguments["language"].upper()}_'
+        f'{arguments["country_code"].upper()}_{arguments["lab_number"]}_PT{arguments["session_id"]}.yaml'
+    )
+
+    with EXPERIMENT_CONFIG_PATH.open('w', encoding='utf-8') as file:  # cache the arguments
         yaml.dump(arguments, file)
 
-    path_to_tasks = os.path.abspath('tasks/')
-    sys.path.insert(0, path_to_tasks)  # Add tasks directory to Python path
+    path_to_tasks = (PARENT_FOLDER / 'tasks').resolve()
+    sys.path.insert(0, str(path_to_tasks))  # Add tasks directory to Python path
 
-    if arguments['wmc']:
+    # this is some work around to make sure that the arguments are set correctly.
+    # see https://github.com/chriskiehl/Gooey/issues/148
+    arguments['wmc'] = not arguments['wmc']
+    arguments['ran'] = not arguments['ran']
+    arguments['stroop_flanker'] = not arguments['stroop_flanker']
+    arguments['plab'] = not arguments['plab']
+    arguments['wiki_vocab'] = not arguments['wiki_vocab']
+    arguments['ppvt'] = not arguments['ppvt']
+    arguments['wcst'] = not arguments['wcst']
+
+    # save the random seed used for the participant
+    arguments['random_seed'] = random_seed
+
+    with participant_config_path.open('w', encoding='utf-8') as file:
+        yaml.dump(arguments, file)
+
+    if wmc and arguments['wmc']:
         print("Running WMC")
         if system == 'Windows':
             print("Running WMC on Windows")
-            run_script('tasks/WMC/wmc_windows.py')
+            run_script(PARENT_FOLDER / 'tasks' / 'WMC' / 'wmc_windows.py', part_folder=participant_folder_relative)
         elif system == 'Linux':
-            print("Running WMC on Linux")
-            run_script('tasks/WMC/wmc_linux.py')
+            raise RuntimeError(
+                "The WMC (Working Memory Capacity) task is not currently supported on Linux systems.\n"
+                "To continue, please run the experiment on a Mac or Windows computer. "
+            )
         else:
             print("Running WMC on Mac")
-            run_script('tasks/WMC/wmc_mac.py')
+            run_script(PARENT_FOLDER / 'tasks' / 'WMC' / 'wmc_mac.py', part_folder=participant_folder_relative)
         arguments['run_wmc'] = 'success'
 
-    if arguments['ran']:
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    if ran and arguments['ran']:
         print("Running RAN")
-        run_script('tasks/RAN/ran_task.py')
+        run_script(PARENT_FOLDER / 'tasks' / 'RAN' / 'ran_task.py', part_folder=participant_folder_relative)
         arguments['run_ran'] = 'success'
 
-    if arguments['stroop_flanker']:
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    if stroop_flanker and arguments['stroop_flanker']:
         print("Running Stroop Flanker")
-        run_script('tasks/Stroop-Flanker/stroop_flanker.py')
+        run_script(PARENT_FOLDER / 'tasks' / 'Stroop-Flanker' / 'Stroop_Flanker.py', part_folder=participant_folder_relative)
         arguments['run_stroop_flanker'] = 'success'
 
-    if arguments['plab']:
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    if plab and arguments['plab']:
         print("Running PLAB")
-        run_script('tasks/PLAB/plab.py')
+        run_script(PARENT_FOLDER / 'tasks' / 'PLAB' / 'plab.py', part_folder=participant_folder_relative)
         arguments['run_plab'] = 'success'
 
-    if arguments['wiki_vocab']:
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    if wiki_vocab and arguments['wiki_vocab']:
         print("Running WikiVocab")
-        run_script('tasks/WikiVocab/app.py')
+        run_script(PARENT_FOLDER / 'tasks' / 'WikiVocab' / 'app.py', part_folder=participant_folder_relative)
         arguments['run_wiki_vocab'] = 'success'
 
-    if arguments['ppvt']:
-        if Path(f"languages/{language}/instructions/Peabody_instructions_{language}.xlsx").exists():
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    if peabody and arguments['ppvt']:
+        xlsx_path = (
+            PARENT_FOLDER / 'languages' / arguments['language'] / 'instructions' /
+            f'Peabody_instructions_{arguments["language"]}.xlsx'
+        )
+        csv_path = (
+            PARENT_FOLDER / 'languages' / arguments['language'] / 'instructions' /
+            f'Peabody_instructions_{arguments["language"]}.csv'
+        )
+        if xlsx_path.exists() or csv_path.exists():
             print("Running PPVT")
-            run_script('tasks/Peabody/ppvt.py')
+            run_script(PARENT_FOLDER / 'tasks' / 'Peabody' / 'ppvt.py', part_folder=participant_folder_relative)
             arguments['run_ppvt'] = 'success'
         else:
             print("PPVT is not available for this language.")
 
-    if arguments['wcst']:
-        if Path(f"languages/{language}/instructions/WCST_instructions_{language}.xlsx").exists():
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    if wcst and arguments['wcst']:
+        xlsx_path = (
+            PARENT_FOLDER / 'languages' / arguments['language'] / 'instructions' /
+            f'WCST_instructions_{arguments["language"]}.xlsx'
+        )
+        csv_path = (
+            PARENT_FOLDER / 'languages' / arguments['language'] / 'instructions' /
+            f'WCST_instructions_{arguments["language"]}.csv'
+        )
+        if xlsx_path.exists() or csv_path.exists():
             print("Running WCST")
-            run_script('tasks/WCST/wcst.py')
+            run_script(PARENT_FOLDER / 'tasks' / 'WCST' / 'wcst.py', part_folder=participant_folder_relative)
             arguments['run_wcst'] = 'success'
         else:
             print("WCST is not available for this language.")
+       
 
-    with open(participant_config_path, 'w') as file:
+        with participant_config_path.open('w', encoding='utf-8') as file:
+            yaml.dump(arguments, file)
+
+    with participant_config_path.open('w', encoding='utf-8') as file:
         yaml.dump(arguments, file)
+
     core.quit()

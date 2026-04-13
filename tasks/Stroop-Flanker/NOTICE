@@ -1,0 +1,33 @@
+This file contains modifications from the original source code.
+
+Original Project: stroop-simon-german (DiLi-Lab)
+Source URL: https://github.com/DiLi-Lab/stroop-simon-german
+
+The original stroop-simon-german project does not include a LICENSE file.
+
+This implementation is based on the following paradigms:
+- Stroop task: Stroop, J. R. (1935). Studies of interference in serial verbal reactions.
+- Flanker task: Eriksen, B. A., & Eriksen, C. W. (1974). Effects of noise letters upon identification of a target letter in a nonsearch task.
+
+Modifications made to the original code:
+
+1. Framework Configuration
+   - Added YAML-based configuration system (config.yaml, experiment.yaml)
+   - Added command-line argument parsing (--participant_folder)
+
+2. Task Changes
+   - Changed from separate Stroop + Simon to combined Stroop + Flanker task
+   - Made language configurable via YAML instead of German-only
+
+3. Data Output
+   - Modified output path structure: data/{participant_folder}/Stroop-Flanker/
+   - Changed to CSV format for results
+
+4. Code Structure
+   - Converted from PsychoPy Builder output to standalone script
+   - Added proper argument parsing and configuration loading
+
+Note: The original DiLi-Lab/stroop-simon-german project does not include a LICENSE file.
+This implementation follows the same paradigm as the original with proper attribution.
+
+Original code adapted from DiLi-Lab.

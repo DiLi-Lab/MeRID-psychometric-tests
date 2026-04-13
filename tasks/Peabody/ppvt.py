@@ -5,11 +5,13 @@ This experiment runs the PPVT test
 """
 
 from __future__ import absolute_import, division
+import argparse
 import pandas as pd
 from psychopy import gui, visual, core, data, event, logging
 from psychopy import sound
 from psychopy.constants import (NOT_STARTED, STARTED, FINISHED)
 import os
+from pathlib import Path
 
 from psychopy.hardware import keyboard
 import yaml
@@ -17,12 +19,18 @@ from datetime import datetime
 
 date = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
+parser = argparse.ArgumentParser(description="Run the PPVT test.")
+parser.add_argument('--participant_folder', type=str, required=True, help="Path to the participant folder.")
+args = parser.parse_args()
+results_folder = args.participant_folder
+
 # Path to the YAML file contains the language and experiment configurations
-config_path = f'configs/config.yaml'
-experiment_config_path = f'configs/experiment.yaml'
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+config_path = PROJECT_ROOT / 'configs' / 'config.yaml'
+experiment_config_path = PROJECT_ROOT / 'configs' / 'experiment.yaml'
 
 # Load the YAML file
-with open(config_path, 'r', encoding="utf-8") as file:
+with config_path.open('r', encoding='utf-8') as file:
     config_data = yaml.safe_load(file)
 language = config_data['language']
 country_code = config_data['country_code']
@@ -30,9 +38,9 @@ lab_number = config_data['lab_number']
 random_seed = config_data['random_seed']
 font = config_data['font']
 
-if os.path.exists(experiment_config_path):
+if experiment_config_path.exists():
     # Load the experiment configuration if the file exists
-    with open(experiment_config_path, 'r', encoding="utf-8") as file:
+    with experiment_config_path.open('r', encoding='utf-8') as file:
         expInfo = yaml.safe_load(file)
         participant_id_str = str(expInfo['participant_id'])
         while len(participant_id_str) < 3:
@@ -41,34 +49,73 @@ if os.path.exists(experiment_config_path):
 else:
     # Set default values if the file does not exist
     expInfo = {'participant_id': 999, 'session_id': 2}
+    participant_id = "999"
 
 # Store info about the experiment session
 psychopyVersion = '2023.2.3'
 expName = 'Peabody'  # from the Builder filename that created this script
 
-# Create folder name for the results
-results_folder = f"{participant_id}_{language}_{country_code}_{lab_number}_PT{expInfo['session_id']}"
-
-# Create folder for audio and csv data
-output_path = f'data/psychometric_test_{language}_{country_code}_{lab_number}/Peabody/{results_folder}/'
-os.makedirs(output_path, exist_ok=True)
+# Create folder for task output data
+output_path = PROJECT_ROOT / 'data' / results_folder / 'Peabody'
+output_path.mkdir(parents=True, exist_ok=True)
 
 # Data file name stem = absolute path + name; later add .psyexp, .csv, .log, etc
-filename = f"{output_path}" \
-           f"{language}{country_code}{lab_number}" \
-           f"_{participant_id}_PT{expInfo['session_id']}_{date}"
+filename = str(
+    output_path / (
+        f"{language}{country_code}{lab_number}"
+        f"_{participant_id}_PT{expInfo['session_id']}_{date}"
+    )
+)
 
-instructions_df = pd.read_excel(f'languages/{language}/instructions/Peabody_instructions_{language.lower()}.xlsx', index_col='screen')
-welcome_text = instructions_df.loc['Welcome_text', language]
-welcome_text = welcome_text.replace('\\n', '\n')
-done_text = instructions_df.loc['done_text', language]
-done_text = done_text.replace('\\n', '\n')
-start_warning_text = instructions_df.loc['start_warning_text', language]
-start_warning_text = start_warning_text.replace('\\n', '\n')
-Goodbyetext = instructions_df.loc['Goodbye_text', language]
-Goodbyetext = Goodbyetext.replace('\\n', '\n')
-PPVT_instructions = instructions_df.loc['PPVT_instructions', language]
-PPVT_instructions = PPVT_instructions.replace('\\n', '\n')
+
+def resolve_table_file(base_path_without_ext, file_label='input file'):
+    candidate_extensions = ('.xlsx', '.csv')
+    base_path = Path(base_path_without_ext)
+    for extension in candidate_extensions:
+        candidate_path = base_path.with_suffix(extension)
+        if candidate_path.exists():
+            return candidate_path
+
+    tried_paths = ", ".join(str(base_path.with_suffix(ext)) for ext in candidate_extensions)
+    raise FileNotFoundError(f"Could not find {file_label}. Tried: {tried_paths}")
+
+
+def load_table_file(path, **kwargs):
+    table_path = Path(path)
+    if table_path.suffix.lower() == '.csv':
+        return pd.read_csv(table_path, **kwargs)
+    return pd.read_excel(table_path, **kwargs)
+
+
+def normalize_text(value, default=''):
+    if value is None:
+        return default
+    if isinstance(value, float) and pd.isna(value):
+        return default
+    text = str(value)
+    text = text.replace('\\n', '\n')
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    return text
+
+
+def resolve_asset_path(path_like):
+    path_str = str(path_like).strip()
+    candidate = Path(path_str)
+    if candidate.is_absolute():
+        return str(candidate)
+    return str((PROJECT_ROOT / candidate).resolve())
+
+instructions_path = resolve_table_file(
+    PROJECT_ROOT / 'languages' / language / 'instructions' / f'Peabody_instructions_{language.lower()}',
+    file_label='PPVT instructions file'
+)
+instructions_df = load_table_file(instructions_path, index_col='screen')
+
+welcome_text = normalize_text(instructions_df.loc['Welcome_text', language], default='Welcome')
+done_text = normalize_text(instructions_df.loc['done_text', language], default='')
+start_warning_text = normalize_text(instructions_df.loc['start_warning_text', language], default='')
+Goodbyetext = normalize_text(instructions_df.loc['Goodbye_text', language], default='Goodbye')
+PPVT_instructions = normalize_text(instructions_df.loc['PPVT_instructions', language], default='')
 
 # An ExperimentHandler isn't essential but helps with data saving
 thisExp = data.ExperimentHandler(name=expName, version='',
@@ -106,7 +153,7 @@ defaultKeyboard = keyboard.Keyboard()
 
 # Initialize the audio icon as a visual stimulus
 audio_icon = visual.ImageStim(win=win,
-                              image=f'languages/{language}/Peabody/audios_{language.lower()}/audio_icon.png',
+                              image=str(PROJECT_ROOT / 'languages' / language / 'Peabody' / f'audios_{language.lower()}' / 'audio_icon.png'),
                               pos=(0.01, 0.01), size=(0.1, 0.1))
 
 # # Initialize the audio stimulus (assuming sound.Sound() is already imported)
@@ -178,7 +225,7 @@ PPVT_instruction_key = keyboard.Keyboard()
 # Positions for the images: top-left, top-right, bottom-left, bottom-right
 position = (0, 0)
 # Assuming all images are the same size and the path to the images are specified correctly
-practice_images = f'languages/{language}/Peabody/images_{language.lower()}/set_0/0_1.png'
+practice_images = str(PROJECT_ROOT / 'languages' / language / 'Peabody' / f'images_{language.lower()}' / 'set_0' / '0_1.png')
 
 # Initialize components for Routine "PPVTPractice"
 PPVTPracticeClock = core.Clock()
@@ -500,7 +547,7 @@ thisExp.addData('blank.stopped', blank.tStopRefresh)
 
 # set up handler to look after randomisation of conditions etc
 PPVT_practice_trials = data.TrialHandler(nReps=1.0, method='sequential',
-    trialList=data.importConditions(f'languages/{language}/Peabody/ppvt_practice.csv'),
+    trialList=data.importConditions(str(PROJECT_ROOT / 'languages' / language / 'Peabody' / 'ppvt_practice.csv')),
     seed=None, name='PPVT_practice_trials')
 thisExp.addLoop(PPVT_practice_trials)  # add the loop to the experiment
 
@@ -514,7 +561,7 @@ for thisPPVT_practice_trial in PPVT_practice_trials:
     correct_key = thisPPVT_practice_trial['correct_key']
     print(f"Set ID: {set_id}, Correct Key: {correct_key}")
 
-    audio_path = thisPPVT_practice_trial['audios_path']
+    audio_path = resolve_asset_path(thisPPVT_practice_trial['audios_path'])
     audio_stim = sound.Sound(value=audio_path)
     audio_played = False
 
@@ -809,7 +856,7 @@ floor_set = None
 ceiling_set = None
 sets_tested = []
 
-full_df = pd.read_csv(f'languages/{language}/Peabody/ppvt_vocab.csv')
+full_df = pd.read_csv(PROJECT_ROOT / 'languages' / language / 'Peabody' / 'ppvt_vocab.csv')
 
 # Main experiment loop
 while current_set >= 1 and current_set <= 19:
@@ -832,11 +879,11 @@ while current_set >= 1 and current_set <= 19:
         set_id = thisPPVT_trial['set_id']
         correct_key = thisPPVT_trial['correct_key']
         print(f"Set ID: {set_id}, Correct Key: {correct_key}")
-        images_path = thisPPVT_trial['images_path']
+        images_path = resolve_asset_path(thisPPVT_trial['images_path'])
         # for i, img_path in enumerate(images_path):
         #     PPVT_pics[i].image = img_path
 
-        audio_path = thisPPVT_trial['audios_path']
+        audio_path = resolve_asset_path(thisPPVT_trial['audios_path'])
         audio_stim = sound.Sound(value=audio_path)
         audio_played = False
 

@@ -1,0 +1,35 @@
+This file contains modifications from the original source code.
+
+Original Project: aeye-lab/python-wmc-battery
+Source URL: https://github.com/aeye-lab/python-wmc-battery
+Original License: MIT (see LICENSE file)
+
+Modifications made to the original code:
+
+1. Configuration System
+   - Replaced PsychoPy's GUI-based configuration with YAML file-based config
+   - Config loaded from config.yaml and experiment.yaml instead of runtime dialogs
+   - Changed abort key from 'f12' to 'escape' in config/common.yaml
+
+2. Data Output
+   - Modified output path structure to: {participant_id}_{language}_{country_code}_{lab_number}_PT{session_id}/
+   - Changed data file naming convention
+   - Output folder: data/{results_folder}/WMC/
+
+3. Custom Scoring
+   - Added spatial_short_term_memory_scorer.py with custom scoring logic
+   - Modified scorer to use 'participant_id' instead of 'Subject ID'
+
+4. Eye-Tracking Support
+   - Added eye-tracking placeholders (ioDevice, ioConfig, ioSession, ioServer, eyetracker)
+
+5. Dependencies
+   - Removed some PsychoPy imports (sound, locale_setup, certain constants)
+   - Removed scipy.sparse imports from scorer
+
+6. Code Formatting
+   - Various whitespace and formatting changes
+   - Code style adjustments
+
+This software includes the MIT-licensed code from aeye-lab/python-wmc-battery.
+The original code is Copyright 2022 Daniel Krakowczyk.

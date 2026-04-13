@@ -1,27 +1,46 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMainWindow
-import pandas as pd
+"""
+This file is part of WikiVocab, a local PyQt6 implementation of VocabTest.
+
+Based on the original VocabTest project: https://github.com/polvanrijn/VocabTest
+
+Original Citation:
+Pol van Rijn et al. (2023).
+Around the world in 60 words: A generative vocabulary test for online research.
+
+Copyright (C) 2024-2026 MultiplEYE Project
+"""
+
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QMainWindow
+
+from table_loader import load_table_file, resolve_table_file
 
 
 class MyResultWindow(QMainWindow):
     def __init__(self, name, result, language):
-        super(MyResultWindow, self).__init__()
+        super().__init__()
         self.name = name
         self.result = result
         self.language = language
-        instructions_df = pd.read_excel(f'languages/{self.language.upper()}/instructions/WikiVocab_instructions_{self.language}.xlsx',
-                                        index_col='screen')
-        Goodbye_text = instructions_df.loc['Goodbye_text', self.language.upper()]
-        self.Goodbye_text = Goodbye_text.replace('\\n', '\n')
+        instructions_path = resolve_table_file(
+            f'languages/{self.language.upper()}/instructions/WikiVocab_instructions_{self.language.lower()}',
+            file_label='WikiVocab instructions file'
+        )
+        instructions_df = load_table_file(instructions_path, index_col='screen')
+        goodbye_text = instructions_df.loc['Goodbye_text', self.language.upper()]
+        self.goodbye_text = goodbye_text.replace('\\n', '\n')
 
         self.initUI()
 
     def initUI(self) -> None:
-        self.resize(900, 600)
+        self.resize(1200, 800)
         # self.showFullScreen()
         self.setStyleSheet("background-color: rgb(221, 235, 255);")
         self.centralWidget = QtWidgets.QWidget(self)
         self.centralWidget.setObjectName("centralWidget")
+
+        center_x = self.width() // 2
+        center_y = self.height() // 2
 
         # Define font settings
         font = QtGui.QFont()
@@ -33,14 +52,14 @@ class MyResultWindow(QMainWindow):
 
         # Adjust QLabel to occupy the full width
         self.resultLabel = QtWidgets.QLabel(self.centralWidget)
-        self.resultLabel.setGeometry(QtCore.QRect(0, 50, 900, 400))  # Adjusted to full width
+        self.resultLabel.setGeometry(QtCore.QRect(center_x - 500, 50, 1000, 400))  # Adjusted to full width
         self.resultLabel.setFont(font)
         self.resultLabel.setStyleSheet("color: rgb(0, 0, 0);")
-        self.resultLabel.setAlignment(QtCore.Qt.AlignCenter)  # Center the text
+        self.resultLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)  # Center the text
         self.resultLabel.setObjectName("result")
 
         # Set the text with formatted result
-        self.resultLabel.setText(self.Goodbye_text
+        self.resultLabel.setText(self.goodbye_text
                                  # + f"\n\nYour result - \n{self.format_result()}"
                                  )
 
@@ -52,4 +71,3 @@ class MyResultWindow(QMainWindow):
             f"Score with fake words - {self.result['incorrect'] * 100}%\n"
             f"Total score - {self.result['total'] * 100}%\n"
         )
-

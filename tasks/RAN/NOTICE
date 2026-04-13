@@ -1,0 +1,34 @@
+This file contains modifications from the original source code.
+
+Original Project: py-ran-task
+Source URL: https://github.com/bnicenboim/py-ran-task
+Original License: GPL-2.0 (see LICENSE file)
+Original Author: Bruno Nicenboim (adapted from Titus Von der Malsburg)
+
+Modifications made to the original code:
+
+1. Framework Change
+   - Replaced Tkinter GUI with PsychoPy for stimulus presentation
+   - Changed from tkSnack to sounddevice + soundfile for audio recording
+
+2. Configuration System
+   - Replaced Python config files with YAML-based configuration
+   - Config loaded from config.yaml and experiment.yaml
+
+3. Task Type
+   - Changed from letters + numbers to numbers only
+   - Added digits.yaml with digit matrices
+
+4. Data Output
+   - Changed from text files to CSV format
+   - Audio saved as WAV files with participant/trial metadata
+   - Modified output path structure: data/{participant_folder}/RAN/
+
+5. Code Structure
+   - Converted from single script to modular structure
+   - Added command-line argument parsing (--participant_folder)
+   - Added instruction loading from Excel files
+   - Added escape key support for early exit
+
+This software is based on the GPL-2.0 licensed code from bnicenboim/py-ran-task.
+The original code is Copyright (C) Bruno Nicenboim.

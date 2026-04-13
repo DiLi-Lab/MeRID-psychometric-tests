@@ -1,0 +1,32 @@
+This software contains code adapted from the Wisconsin Card Sorting Task (WCST) project.
+
+Original Project: WCST (PsychoPy edition)
+Source URL: https://github.com/OttoKuosmanen/WCST
+Original Authors: Otto Kuosmanen (Keijumies) and contributors
+Original License: MIT (see `tasks/WCST/LICENSE.txt`)
+
+Reference:
+- Esta A. Berg (1948). A Simple Objective Technique for Measuring Flexibility in Thinking.
+  The Journal of General Psychology, 39(1), 15-22.
+  https://doi.org/10.1080/00221309.1948.9918159
+
+Modifications made in this repository:
+
+1. Integration into MeRID task framework
+   - Integrated WCST into the local multi-task psychometric test suite.
+   - Added standardized task launch and local participant output structure.
+
+2. Configuration and runtime control
+   - Added YAML-based configuration loading (`configs/config.yaml` and `configs/experiment.yaml`).
+   - Added command-line argument support for participant folder/output routing.
+
+3. Multilingual and text rendering adaptations
+   - Added language-specific instruction loading from local `languages/` resources.
+   - Added support for right-to-left scripts and font fallback handling.
+
+4. Data and file handling updates
+   - Adapted trial/instruction table loading to support local spreadsheet/CSV inputs.
+   - Updated result and log export paths for local offline administration.
+
+This NOTICE is provided to preserve attribution for the original WCST implementation
+while documenting adaptations made for this repository.

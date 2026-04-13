@@ -1,17 +1,18 @@
 import yaml
+from pathlib import Path
+
 
 class Instructions:
     def __init__(self, language):
+        project_root = Path(__file__).resolve().parents[3]
+        base_path = project_root / 'languages' / language / 'WMC'
+        filepath = base_path / f'instructions_{language.lower()}.yaml'
 
-        path_pattern = f'languages/{language}/WMC/' + '{}'
-        filepath = f'languages/{language}/WMC/instructions_{language.lower()}.yaml'
-
-        with open(filepath, 'r') as stream:
+        with filepath.open('r') as stream:
             instructions = yaml.safe_load(stream)
-        
+
         for key in instructions.keys():
-            instructions[key] = list(map(path_pattern.format,
-                                         instructions[key]))
+            instructions[key] = [str(base_path / item) for item in instructions[key]]
         self.instructions = instructions
 
     def get_instructions(self, task):

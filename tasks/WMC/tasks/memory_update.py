@@ -1,15 +1,16 @@
 import operator as op
 import random
-from psychopy import visual
+
 import pandas as pd
+from psychopy import visual
 
 from tasks.generic_task import GenericTask, GenericTrial
-
 
 operator_string_map = {
     op.add: '+',
     op.sub: '-',
 }
+
 
 class MemoryUpdateOperation:
     def __init__(self, operator, operand_right, location):
@@ -50,7 +51,7 @@ class MemoryUpdateOperationFactory:
 
             values[location] = operation.operator(values[location], operand_right)
             prev_operation = operation
-            
+
         return operations
 
     def generate_operation(self, operand_left, omit):
@@ -68,11 +69,11 @@ class MemoryUpdateOperationFactory:
 class MemoryUpdateTrial(GenericTrial):
     def __init__(self, digits, operations, locations):
         super().__init__()
-        
+
         self.digits = digits
         self.operations = operations
         self.locations = locations
-        
+
         self.recall_order = list(range(len(digits)))
         random.shuffle(self.recall_order)
         self.results = self.compute_results(digits, operations)
@@ -89,7 +90,7 @@ class MemoryUpdateTrial(GenericTrial):
         for operation in operations:
             location = operation.get_location()
             results[location] = operation.compute(results[location])
-        
+
         return results
 
     def get_n_digits(self):
@@ -112,7 +113,7 @@ class MemoryUpdateTrial(GenericTrial):
 
         operation = self.operations[self.current_operation]
         location = self.locations[operation.location]
-        
+
         return operation, location
 
     def get_operation_sequence_string(self, location_id):
@@ -157,7 +158,7 @@ class MemoryUpdateTrialFactory:
     def __init__(self, locations):
         self.locations = locations
         self.valid_digits = list(range(1, 10))
-        
+
     def generate(self, set_sizes, n_operations):
         assert len(set_sizes) == len(n_operations)
         assert all(set_size <= max(self.locations.keys()) for set_size in set_sizes)
@@ -167,7 +168,7 @@ class MemoryUpdateTrialFactory:
         for i in range(len(set_sizes)):
             trial_set_size = set_sizes[i]
             trial_n_operations = n_operations[i]
-            
+
             trial_digits = random.sample(self.valid_digits, trial_set_size)
             trial_locations = self.locations[trial_set_size]
             trial_operations = operation_factory.generate(
@@ -185,7 +186,7 @@ class MemoryUpdateTask(GenericTask):
         super().__init__()
         random.seed(seed)
         self.name = 'MU'
-        
+
         self.config = config
         self.init_frames(window, config)
         self.init_trials(config)
@@ -198,7 +199,7 @@ class MemoryUpdateTask(GenericTask):
         frame_units = config['frames']['units']
 
         self.frames = {n_frames: [] for n_frames in frame_locations.keys()}
-        
+
         for n_frames, frame_positions in frame_locations.items():
             for frame_position in frame_positions:
                 this_frame = visual.Rect(
@@ -206,8 +207,8 @@ class MemoryUpdateTask(GenericTask):
                     width=frame_width,
                     height=frame_height,
                     ori=0, pos=frame_position,
-                    lineWidth=1, lineColor='black', lineColorSpace='rgb',
-                    fillColor=[1,1,1], fillColorSpace='rgb',
+                    lineWidth=1, lineColor='black',
+                    fillColor=[1, 1, 1], colorSpace='rgb',
                     opacity=1, depth=-1.0, interpolate=True,
                     units=frame_units)
                 self.frames[n_frames].append(this_frame)
@@ -239,7 +240,6 @@ class MemoryUpdateTask(GenericTask):
         self.results[self.response_cols] = 0
         self.results[self.is_correct_cols] = -1
 
-
     def start_new_trial(self):
         trial = super().start_new_trial()
         self.show_frames(trial.get_n_digits(), show=True)
@@ -251,11 +251,12 @@ class MemoryUpdateTask(GenericTask):
         super().finish_trial()
 
     def copy_trial_results(self, trial):
-        trial_row = self.results.iloc[self.current_trial_id]
         responses = trial.responses
-        trial_row.loc[self.response_cols[:len(responses)]] = responses
+        response_cols = self.response_cols[:len(responses)]
+        self.results.loc[self.current_trial_id, response_cols] = responses
         is_correct = trial.is_correct
-        trial_row.loc[self.is_correct_cols[:len(is_correct)]] = is_correct
+        is_correct_cols = self.is_correct_cols[:len(is_correct)]
+        self.results.loc[self.current_trial_id, is_correct_cols] = is_correct
 
     def hide_frames(self):
         for n_frames in self.frames.keys():

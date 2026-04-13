@@ -7,7 +7,7 @@ grid:
 
 dots:
   size: 0.065                # dot size
-      
+
 sequences:
   padding: 1                # min distance of generated dot from grid border
 

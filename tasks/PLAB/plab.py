@@ -1,836 +1,965 @@
-﻿from __future__ import absolute_import, division
-import pandas as pd
-from psychopy import gui, visual, core, data, event, logging
-from psychopy.constants import (NOT_STARTED, STARTED, FINISHED)
-import os
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+PLAB (Language Analysis) Task - PsychoPy implementation.
+This is a custom implementation based on the paper-and-pencil PLAB test.
+The original test materials were adapted from a PowerPoint template,
+converted to screenshots, and presented as visual stimuli.
 
-from psychopy.hardware import keyboard
-import yaml
+Unified text rendering:
+- ALL languages use Pillow-rendered text images for:
+  * welcome
+  * instructions
+  * done
+  * goodbye
+  * question + options blocks
+- RTL languages use DejaVu Sans by default
+- LTR languages use the configured font (fallback Arial)
+- Highlight rectangles are derived from rendered option boxes, so no hard-coded
+  option rectangle positions are needed for different machines.
+"""
+
+from __future__ import absolute_import, division
+
+import argparse
+import ast
+import os
+import re
+import unicodedata
 from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import yaml
+from psychopy import visual, core, data, event, logging
+from psychopy.hardware import keyboard
+
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    HAS_RTL_SUPPORT = True
+except ImportError:
+    HAS_RTL_SUPPORT = False
+
+from PIL import Image, ImageDraw, ImageFont
+from matplotlib import font_manager
 
 date = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-# Path to the YAML file contains the language and experiment configurations
-config_path = f'configs/config.yaml'
-experiment_config_path = f'configs/experiment.yaml'
+# ========================================= Args =========================================================
 
-# Load the YAML file
-with open(config_path, 'r', encoding="utf-8") as file:
+parser = argparse.ArgumentParser(description="Run the PLAB task.")
+parser.add_argument('--participant_folder', type=str, required=True, help="Path to the participant folder.")
+args = parser.parse_args()
+results_folder = args.participant_folder
+
+# ========================================= Config =========================================================
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+config_path = PROJECT_ROOT / 'configs' / 'config.yaml'
+experiment_config_path = PROJECT_ROOT / 'configs' / 'experiment.yaml'
+
+with config_path.open('r', encoding='utf-8') as file:
     config_data = yaml.safe_load(file)
-language = config_data['language']
+
+language = str(config_data['language']).strip()
 country_code = config_data['country_code']
 lab_number = config_data['lab_number']
 random_seed = config_data['random_seed']
 font = config_data['font']
 
-if os.path.exists(experiment_config_path):
-    # Load the experiment configuration if the file exists
-    with open(experiment_config_path, 'r', encoding="utf-8") as file:
+RTL_LANGS = {'fa', 'fas', 'ar', 'ara', 'he', 'heb', 'ur', 'urd'}
+is_rtl = str(language).lower() in RTL_LANGS
+
+if experiment_config_path.exists():
+    with experiment_config_path.open('r', encoding='utf-8') as file:
         expInfo = yaml.safe_load(file)
         participant_id_str = str(expInfo['participant_id'])
         while len(participant_id_str) < 3:
             participant_id_str = "0" + participant_id_str
         participant_id = participant_id_str
 else:
-    # Set default values if the file does not exist
     expInfo = {'participant_id': 999, 'session_id': 2}
+    participant_id = "999"
 
-# Store info about the experiment session
-psychopyVersion = '2023.2.3'
-expName = 'PLAB'  # from the Builder filename that created this script
+# ========================================= Paths =========================================================
+
+output_path = PROJECT_ROOT / 'data' / results_folder / 'PLAB'
+output_path.mkdir(parents=True, exist_ok=True)
+
+rendered_text_dir = output_path / f'rendered_text_{date}'
+rendered_text_dir.mkdir(parents=True, exist_ok=True)
+
+filename = str(
+    output_path / (
+    f"{language}{country_code}{lab_number}"
+    f"_{participant_id}_PT{expInfo['session_id']}_{date}"
+    )
+)
+
+# ========================================= Helpers =========================================================
 
 
-# Create folder name for the results
-results_folder = f"{participant_id}_{language}_{country_code}_{lab_number}_PT{expInfo['session_id']}"
+def normalize_text(text):
+    if pd.isna(text):
+        return ""
+    text = str(text)
+    text = text.replace('\\n', '\n')
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    text = unicodedata.normalize('NFC', text)
+    return text
 
-# Create folder for audio and csv data
-output_path = f'data/psychometric_test_{language}_{country_code}_{lab_number}/PLAB/{results_folder}/'
-os.makedirs(output_path, exist_ok=True)
 
-# Data file name stem = absolute path + name; later add .psyexp, .csv, .log, etc
-filename = f"{output_path}" \
-           f"{language}{country_code}{lab_number}" \
-           f"_{participant_id}_PT{expInfo['session_id']}_{date}"
+def sanitize_text(text):
+    text = normalize_text(text)
+    cleaned = []
+    for ch in text:
+        code = ord(ch)
+        cat = unicodedata.category(ch)
+        if 0xD800 <= code <= 0xDFFF:
+            continue
+        if cat in {'Cs', 'Co', 'Cn'}:
+            continue
+        if cat == 'Cc' and ch not in ('\n', '\t'):
+            continue
+        cleaned.append(ch)
+    return ''.join(cleaned)
 
-instructions_df = pd.read_excel(f'languages/{language}/instructions/PLAB_instructions_{language.lower()}.xlsx', index_col='screen')
-welcome_text = instructions_df.loc['Welcome_text', language]
-welcome_text = welcome_text.replace('\\n', '\n')
-done_text = instructions_df.loc['done_text', language]
-done_text = done_text.replace('\\n', '\n')
-# start_warning_text = instructions_df.loc['start_warning_text', language]
-# start_warning_text = start_warning_text.replace('\\n', '\n')
-Goodbyetext = instructions_df.loc['Goodbye_text', language]
-Goodbyetext = Goodbyetext.replace('\\n', '\n')
-PLAB_instructions = instructions_df.loc['PLAB_instructions', language]
-PLAB_instructions = PLAB_instructions.replace('\\n', '\n')
 
-task1_img = f'languages/{language}/PLAB/Plab_part4_task1_{language.lower()}.png'
-task2_img = f'languages/{language}/PLAB/Plab_part4_task2_{language.lower()}.png'
-PlabStim = f'languages/{language}/PLAB/PlabStim_{language.lower()}.xlsx'
+def clean_ltr_text(text):
+    text = sanitize_text(text)
+    text = text.replace('\u200c', '')
+    text = ''.join(ch for ch in text if not unicodedata.combining(ch))
+    return text
 
-# An ExperimentHandler isn't essential but helps with data saving
-thisExp = data.ExperimentHandler(name='PLAB', version='',
+
+def normalize_instruction_text(text):
+    """
+    Preserve explicit line breaks for RTL languages.
+    For LTR languages, keep the old paragraph behavior.
+    """
+    text = sanitize_text(text).strip()
+    if not text:
+        return ''
+
+    if is_rtl:
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            line = re.sub(r'[ \t]+', ' ', line).strip()
+            cleaned_lines.append(line)
+        return '\n'.join(cleaned_lines)
+
+    paragraphs = re.split(r'\n\s*\n+', text)
+    cleaned = []
+    for p in paragraphs:
+        p = re.sub(r'[\n\t]+', ' ', p)
+        p = re.sub(r'\s+', ' ', p).strip()
+        if p:
+            cleaned.append(p)
+    return '\n\n'.join(cleaned)
+
+
+def shape_rtl_line(line):
+    if not HAS_RTL_SUPPORT:
+        return line
+    reshaped = arabic_reshaper.reshape(line)
+    return get_display(reshaped)
+
+
+def visual_line(line, rtl=False):
+    line = sanitize_text(line)
+    if rtl:
+        return shape_rtl_line(line)
+    return clean_ltr_text(line)
+
+
+def resolve_conditions_file(base_path_without_ext, file_label='input file'):
+    candidate_extensions = ('.xlsx', '.csv')
+    base_path = Path(base_path_without_ext)
+    for extension in candidate_extensions:
+        candidate_path = base_path.with_suffix(extension)
+        if candidate_path.exists():
+            return str(candidate_path)
+
+    tried_paths = ", ".join(str(base_path.with_suffix(ext)) for ext in candidate_extensions)
+    raise FileNotFoundError(f"Could not find {file_label}. Tried: {tried_paths}")
+
+
+def resolve_font_path(preferred_font_name):
+    try:
+        path = font_manager.findfont(preferred_font_name, fallback_to_default=False)
+        if path and Path(path).exists():
+            return path
+    except Exception:
+        pass
+
+    fallback = font_manager.findfont("DejaVu Sans")
+    if fallback and Path(fallback).exists():
+        return fallback
+
+    raise FileNotFoundError(f"Could not resolve a font path for '{preferred_font_name}'.")
+
+
+def choose_font_path(language_code, preferred_ltr_font):
+    if str(language_code).lower() in RTL_LANGS:
+        return resolve_font_path("DejaVu Sans")
+    return resolve_font_path(preferred_ltr_font if preferred_ltr_font else "Arial")
+
+
+def measure_text_pil(draw, text, font_obj):
+    bbox = draw.textbbox((0, 0), text, font=font_obj)
+    return bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+
+def wrap_paragraph(draw, paragraph, font_obj, max_width_px, rtl=False):
+    words = paragraph.split()
+    if not words:
+        return []
+
+    lines = []
+    current = []
+
+    for word in words:
+        candidate_logical = ' '.join(current + [word])
+        candidate_visual = visual_line(candidate_logical, rtl=rtl)
+        width, _ = measure_text_pil(draw, candidate_visual, font_obj)
+        if width <= max_width_px or not current:
+            current.append(word)
+        else:
+            lines.append(' '.join(current))
+            current = [word]
+
+    if current:
+        lines.append(' '.join(current))
+
+    return lines
+
+
+def wrap_text_to_lines(text, rtl, draw, font_obj, max_width_px):
+    """
+    Respect explicit line breaks for RTL text.
+    Each line separated by \n is treated as its own logical line.
+    Blank lines are preserved.
+    """
+    text = normalize_instruction_text(text)
+    if not text:
+        return []
+
+    if rtl:
+        raw_lines = text.split('\n')
+        all_lines = []
+
+        for line in raw_lines:
+            if not line.strip():
+                all_lines.append('')
+                continue
+
+            wrapped = wrap_paragraph(draw, line.strip(), font_obj, max_width_px, rtl=rtl)
+            all_lines.extend(wrapped)
+
+        return all_lines
+
+    paragraphs = text.split('\n\n')
+    all_lines = []
+
+    for i, p in enumerate(paragraphs):
+        lines = wrap_paragraph(draw, p, font_obj, max_width_px, rtl=rtl)
+        all_lines.extend(lines)
+        if i < len(paragraphs) - 1:
+            all_lines.append('')
+
+    return all_lines
+
+
+def render_text_screen_to_image(
+    text,
+    language_code,
+    font_path,
+    out_path,
+    image_width=1800,
+    image_height=1100,
+    font_size=62,
+    margin_px=180,
+    line_spacing_px=24,
+    bg_color=(255, 255, 255, 0),
+    text_color='black'
+):
+    rtl = str(language_code).lower() in RTL_LANGS
+
+    # Use transparent RGBA background so no rectangle/border appears around text.
+    image = Image.new('RGBA', (image_width, image_height), color=bg_color)
+    draw = ImageDraw.Draw(image)
+    font_obj = ImageFont.truetype(font_path, font_size)
+
+    max_width_px = image_width - 2 * margin_px
+    logical_lines = wrap_text_to_lines(text, rtl, draw, font_obj, max_width_px)
+
+    display_lines = []
+    line_heights = []
+
+    for line in logical_lines:
+        if line == '':
+            display_lines.append('')
+            line_heights.append(font_size // 2)
+            continue
+        display_line = visual_line(line, rtl=rtl)
+        _, h = measure_text_pil(draw, display_line, font_obj)
+        display_lines.append(display_line)
+        line_heights.append(h)
+
+    total_height = 0
+    for i, h in enumerate(line_heights):
+        total_height += h
+        if i < len(line_heights) - 1:
+            total_height += line_spacing_px
+
+    y = max(20, (image_height - total_height) // 2)
+
+    for i, line in enumerate(display_lines):
+        if line == '':
+            y += line_heights[i] + line_spacing_px
+            continue
+        w, h = measure_text_pil(draw, line, font_obj)
+        x = (image_width - w) // 2
+        draw.text((x, y), line, font=font_obj, fill=text_color)
+        y += h + line_spacing_px
+
+    image.save(out_path)
+    return out_path
+
+
+def show_text_screen(
+    win,
+    text,
+    language_code,
+    font_name,
+    font_path,
+    output_dir,
+    image_name,
+    height=0.05,
+    image_width=1800,
+    image_height=1100,
+    rtl_font_size_large=52,
+    rtl_font_size_small=42
+):
+    """
+    RTL languages: render welcome/instruction/done as Pillow image
+    LTR languages: keep original PsychoPy TextStim style
+    """
+    if str(language_code).lower() in RTL_LANGS:
+        img_path = Path(output_dir) / image_name
+        render_text_screen_to_image(
+            text=text,
+            language_code=language_code,
+            font_path=font_path,
+            out_path=str(img_path),
+            image_width=image_width,
+            image_height=image_height,
+            font_size=rtl_font_size_large if height >= 0.05 else rtl_font_size_small,
+            line_spacing_px=20
+        )
+        stim = visual.ImageStim(
+            win=win,
+            image=str(img_path),
+            pos=(0, 0),
+            size=(1.8, 1.5),
+            units='norm',
+            interpolate=True
+        )
+    else:
+        stim = visual.TextStim(
+            win=win,
+            text=clean_ltr_text(text),
+            alignText='center',
+            anchorHoriz='center',
+            anchorVert='center',
+            font=font_name if font_name else "Arial",
+            pos=(0, 0),
+            height=height,
+            wrapWidth=1.3,
+            ori=0.0,
+            color='black',
+            colorSpace='rgb',
+            opacity=None,
+            languageStyle='LTR',
+            depth=0.0
+        )
+
+    stim.draw()
+    win.flip()
+    event.clearEvents(eventType='keyboard')
+
+    while True:
+        keys = event.waitKeys(keyList=['space', 'escape'])
+        if 'escape' in keys:
+            win.close()
+            core.quit()
+        if 'space' in keys:
+            break
+
+
+def render_question_option_block_to_image(
+    question,
+    options,
+    language_code,
+    font_path,
+    out_path,
+    image_width=1600,
+    image_height=700,
+    question_font_size=36,
+    option_font_size=32,
+    margin_px=80,
+    line_spacing_px=18,
+    block_gap_px=10,
+    bg_color=(255, 255, 255, 0),
+    text_color='black'
+):
+    """
+    Render one full question+options block as a single image.
+    Returns option bounding boxes in pixel coordinates for highlight rectangles.
+    """
+    rtl = str(language_code).lower() in RTL_LANGS
+
+    image = Image.new('RGBA', (image_width, image_height), color=bg_color)
+    draw = ImageDraw.Draw(image)
+    q_font = ImageFont.truetype(font_path, question_font_size)
+    o_font = ImageFont.truetype(font_path, option_font_size)
+
+    max_width_px = image_width - 2 * margin_px
+
+    q_lines = wrap_text_to_lines(question, rtl, draw, q_font, max_width_px)
+    q_display_lines = [visual_line(line, rtl=rtl) if line else '' for line in q_lines]
+
+    option_display_blocks = []
+    for opt in options:
+        opt_lines = wrap_text_to_lines(opt, rtl, draw, o_font, max_width_px)
+        option_display_blocks.append([visual_line(line, rtl=rtl) if line else '' for line in opt_lines])
+
+    total_height = 0
+    q_line_heights = []
+    for line in q_display_lines:
+        _, h = measure_text_pil(draw, line if line else " ", q_font)
+        q_line_heights.append(h)
+        total_height += h + line_spacing_px
+
+    total_height += block_gap_px
+
+    option_heights = []
+    for block in option_display_blocks:
+        block_h = 0
+        block_line_heights = []
+        for line in block:
+            _, h = measure_text_pil(draw, line if line else " ", o_font)
+            block_line_heights.append(h)
+            block_h += h + line_spacing_px
+        block_h = max(1, block_h - line_spacing_px)
+        option_heights.append(block_line_heights)
+        total_height += block_h + block_gap_px
+
+    y = max(20, (image_height - total_height) // 2)
+
+    for i, line in enumerate(q_display_lines):
+        w, h = measure_text_pil(draw, line if line else " ", q_font)
+        x = (image_width - w) // 2
+        draw.text((x, y), line, font=q_font, fill=text_color)
+        y += h + line_spacing_px
+
+    y += block_gap_px
+
+    option_boxes = []
+
+    for block_idx, block in enumerate(option_display_blocks):
+        block_top = y
+        block_width = 0
+        block_height = 0
+        line_sizes = []
+
+        for line in block:
+            w, h = measure_text_pil(draw, line if line else " ", o_font)
+            line_sizes.append((w, h))
+            block_width = max(block_width, w)
+            block_height += h + line_spacing_px
+
+        block_height = max(1, block_height - line_spacing_px)
+
+        for line_idx, line in enumerate(block):
+            w, h = line_sizes[line_idx]
+            x = (image_width - w) // 2
+            draw.text((x, y), line, font=o_font, fill=text_color)
+            y += h + line_spacing_px
+
+        block_left = (image_width - block_width) // 2
+        option_boxes.append((block_left, block_top, block_left + block_width, block_top + block_height))
+        y += block_gap_px
+
+    image.save(out_path)
+    return out_path, option_boxes
+
+
+def normalize_key_name(key_name):
+    if key_name is None:
+        return None
+
+    if isinstance(key_name, (list, tuple)) and len(key_name) > 0:
+        key_name = key_name[0]
+    elif isinstance(key_name, str) and key_name.startswith('[') and key_name.endswith(']'):
+        try:
+            parsed = ast.literal_eval(key_name)
+            if isinstance(parsed, (list, tuple)) and len(parsed) > 0:
+                key_name = parsed[0]
+        except (SyntaxError, ValueError):
+            pass
+
+    normalized = str(key_name).strip().lower().replace('-', '_')
+    key_map = {
+        'spacebar': 'space',
+        'enter': 'return',
+        'leftarrow': 'left',
+        'rightarrow': 'right',
+    }
+    normalized = key_map.get(normalized, normalized)
+
+    for prefix in ('num_', 'numpad_', 'kp_'):
+        if normalized.startswith(prefix):
+            suffix = normalized[len(prefix):]
+            if len(suffix) == 1 and suffix.isdigit():
+                return suffix
+    return normalized
+
+
+_key_backend_warning_shown = False
+CONTINUE_KEYS = ['space', 'return']
+
+
+def safe_event_get_keys(key_list=None):
+    global _key_backend_warning_shown
+    try:
+        return event.getKeys(keyList=key_list)
+    except Exception as exc:
+        if not _key_backend_warning_shown:
+            logging.info(f"event.getKeys failed on this backend: {exc}")
+            _key_backend_warning_shown = True
+        return []
+
+
+def safe_keyboard_get_keys(keyboard_component, key_list=None, wait_release=False):
+    global _key_backend_warning_shown
+    try:
+        return keyboard_component.getKeys(keyList=key_list, waitRelease=wait_release)
+    except Exception as exc:
+        if not _key_backend_warning_shown:
+            logging.info(f"keyboard.getKeys failed on this backend: {exc}")
+            _key_backend_warning_shown = True
+        return []
+
+
+def escape_pressed(default_keyboard):
+    if safe_keyboard_get_keys(default_keyboard, ['escape']):
+        return True
+    return any(normalize_key_name(name) == 'escape' for name in safe_event_get_keys(['escape']))
+
+
+def get_primary_screen_size(default=(1440, 900)):
+    try:
+        import pyglet
+        screen = pyglet.canvas.get_display().get_default_screen()
+        return [int(screen.width), int(screen.height)]
+    except Exception:
+        return list(default)
+
+# ========================================= Metadata =========================================================
+
+psychopyVersion = '2025.1.1'
+expName = 'PLAB'
+
+instructions_path = resolve_conditions_file(
+    str(PROJECT_ROOT / 'languages' / language / 'instructions' / f'PLAB_instructions_{language.lower()}'),
+    file_label='PLAB instructions file'
+)
+if instructions_path.endswith('.csv'):
+    instructions_df = pd.read_csv(instructions_path, index_col='screen')
+else:
+    instructions_df = pd.read_excel(instructions_path, index_col='screen')
+
+welcome_text = normalize_text(instructions_df.loc['Welcome_text', language])
+done_text_str = normalize_text(instructions_df.loc['done_text', language])
+Goodbyetext_str = normalize_text(instructions_df.loc['Goodbye_text', language])
+PLAB_instructions_str = normalize_text(instructions_df.loc['PLAB_instructions', language])
+
+task1_img = str(PROJECT_ROOT / 'languages' / language / 'PLAB' / f'Plab_part4_task1_{language.lower()}.png')
+task2_img = str(PROJECT_ROOT / 'languages' / language / 'PLAB' / f'Plab_part4_task2_{language.lower()}.png')
+PlabStim = resolve_conditions_file(
+    str(PROJECT_ROOT / 'languages' / language / 'PLAB' / f'PlabStim_{language.lower()}'),
+    file_label='PLAB stimulus file'
+)
+
+thisExp = data.ExperimentHandler(
+    name='PLAB', version='',
     extraInfo=expInfo, runtimeInfo=None,
     savePickle=True, saveWideText=True,
-    dataFileName=filename)
-# save a log file for detail verbose info
-logFile = logging.LogFile(filename+'.log', level=logging.EXP)
-logging.console.setLevel(logging.WARNING)  # this outputs to the screen, not a file
+    dataFileName=filename
+)
 
-endExpNow = False  # flag for 'escape' or other condition => quit the exp
-frameTolerance = 0.001  # how close to onset before 'same' frame
+logFile = logging.LogFile(filename + '.log', level=logging.EXP)
+logging.console.setLevel(logging.ERROR)
 
-# Start Code - component code to be run after the window creation
+endExpNow = False
 
-# Setup the Window
 win = visual.Window(
-    size=[1440, 900], fullscr=True, screen=0, 
+    size=get_primary_screen_size(), fullscr=True, screen=0,
     winType='pyglet', allowGUI=False, allowStencil=False,
     monitor='testMonitor', color='white', colorSpace='rgb',
-    blendMode='avg', useFBO=True, 
-    units='height')
-# store frame rate of monitor if we can measure it
-expInfo['frameRate'] = win.getActualFrameRate()
-if expInfo['frameRate'] != None:
-    frameDur = 1.0 / round(expInfo['frameRate'])
-else:
-    frameDur = 1.0 / 60.0  # could not measure, so guess
+    blendMode='avg', useFBO=True,
+    units='height', checkTiming=False
+)
 
-# create a default keyboard (e.g. to check for escape)
+# Warm up the window on Windows / some backends before first real screen
+startup_text = visual.TextStim(
+    win=win,
+    text='',
+    color='black',
+    pos=(0, 0),
+    height=0.05,
+    units='norm'
+)
+
+for i in range(3):
+    startup_text.draw()
+    win.flip()
+    core.wait(0.2)
+
+event.clearEvents(eventType='keyboard')
+
+expInfo['frameRate'] = None
 defaultKeyboard = keyboard.Keyboard()
+font_path = choose_font_path(language, font)
 
+# ========================================= Basic components =========================================================
 
-# Initialize components for Routine "Blank500"
-Blank500Clock = core.Clock()
-blank = visual.TextStim(win=win, name='blank',
+blank = visual.TextStim(
+    win=win, name='blank',
     text='\n\n',
     font='Open Sans',
-    pos=(0, 0), height=0.1, wrapWidth=None, ori=0.0, 
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
+    pos=(0, 0), height=0.1, wrapWidth=None,
+    color='black', colorSpace='rgb',
+    languageStyle='LTR'
+)
 
-# Initialize components for Routine "FixationCross"
-FixationCrossClock = core.Clock()
-fix_cross = visual.TextStim(win=win, name='fix_cross',
+fix_cross = visual.TextStim(
+    win=win, name='fix_cross',
     text='+',
     font='Courier New',
-    pos=(0, 0), height=0.1, wrapWidth=None, ori=0.0,
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
+    pos=(0, 0), height=0.1, wrapWidth=None,
+    color='black', colorSpace='rgb',
+    languageStyle='LTR'
+)
 
-# Initialize components for Routine "Done"
-DoneClock = core.Clock()
-done_text = visual.TextStim(win=win, name='done_text',
-    text=done_text,
-    font=font,
-    pos=(0, 0), height=0.035, wrapWidth=None, ori=0.0,
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
-done_key = keyboard.Keyboard()
-
-# Initialize components for Routine "PLABInstruction"
-PLABInstructionClock = core.Clock()
-PLAB_instructions = visual.TextStim(win=win, name='PLAB_instructions',
-    text= PLAB_instructions,
-    font=font,
-    pos=(0, 0), height=0.03, wrapWidth=1.3, ori=0.0,
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
-PLAB_instruction_key = keyboard.Keyboard()
-
-# Initialize components for Routine "PLAB Task1 Trials"
-PLABTask1Clock = core.Clock()
-PLAB_pics_1 = visual.ImageStim(
-        win=win,
-        name='plab_task1',
-        image=task1_img,
-        pos=(0, 0.18), # 0.18 is the vertical position of the image from the center
-        size=(1.5, 0.6), # 1.5 is the width of the image, 0.6 is the height of the image
-        color=[1, 1, 1], colorSpace='rgb',
-        ori=0.0,
-        flipHoriz=False, flipVert=False,
-        texRes=128.0, interpolate=False
-    )
-PLAB_task1 = visual.TextStim(win=win, name='PLAB_task1',
-    text='',
-    font=font,
-    pos=(0, -0.28), height=0.035, wrapWidth=None, ori=0.0, # -0.28 is the vertical position of the text from the center
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
 PLAB_task1_key = keyboard.Keyboard()
-
-# Rectangles for highlighting options
-highlight_rects = []
-option_positions = [(0, -0.26), (0, -0.31), (0, -0.35), (0, -0.40)]
-for pos in option_positions:
-    rect = visual.Rect(
-        win=win,
-        width=0.8, height=0.035,
-        pos=pos,
-        lineColor='red',
-        lineWidth=2,
-        fillColor=None
-    )
-    highlight_rects.append(rect)
-
-
-# Initialize components for Routine "PLAB Task2 Trials"
-PLABTask2Clock = core.Clock()
-PLAB_pics_2 = visual.ImageStim(
-        win=win,
-        name='plab_task2',
-        image=task2_img,
-        pos=(0, 0.18),
-        size=(1.5, 0.6),
-        color=[1, 1, 1], colorSpace='rgb',
-        ori=0.0,
-        flipHoriz=False, flipVert=False,
-        texRes=128.0, interpolate=False
-    )
-PLAB_task2 = visual.TextStim(win=win, name='PLAB_task2',
-    text='',
-    font=font,
-    pos=(0, -0.28), height=0.035, wrapWidth=None, ori=0.0,
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
 PLAB_task2_key = keyboard.Keyboard()
-
-
-# Initialize components for Routine "GoodbyeScreen"
-GoodbyeScreenClock = core.Clock()
-Goodbyetext = visual.TextStim(win=win, name='Goodbyetext',
-    text=Goodbyetext,
-    font=font,
-    pos=(0, 0), height=0.05, wrapWidth=None, ori=0.0,
-    color='black', colorSpace='rgb', opacity=None,
-    languageStyle='LTR',
-    depth=0.0);
 key_goodbye = keyboard.Keyboard()
 
+# ========================================= Welcome / Instruction =========================================================
 
-# Create some handy timers
-globalClock = core.Clock()  # to track the time since experiment started
-routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine
+show_text_screen(
+    win=win,
+    text=welcome_text,
+    language_code=language,
+    font_name=font,
+    font_path=font_path,
+    output_dir=rendered_text_dir,
+    image_name='welcome.png',
+    height=0.05
+)
 
-# Display welcome message
-welcome_text = visual.TextStim(win, text=welcome_text, alignHoriz='center', alignVert='center',
-                                 font=font, pos=(0, 0), height=0.05, ori=0.0,
-                                    color='black', colorSpace='rgb', opacity=None, languageStyle='LTR', depth=0.0);
-welcome_text.draw()
-win.flip()
-event.waitKeys()
+show_text_screen(
+    win=win,
+    text=PLAB_instructions_str,
+    language_code=language,
+    font_name=font,
+    font_path=font_path,
+    output_dir=rendered_text_dir,
+    image_name='instructions.png',
+    height=0.03,
+    image_width=1800,
+    image_height=1500,
+    rtl_font_size_small=42
+)
 
+# ========================================= Blank500 =========================================================
 
-# ------Prepare to start Routine "PLABInstruction"-------
-continueRoutine = True
-# update component parameters for each repeat
-PLAB_instruction_key.keys = []
-PLAB_instruction_key.rt = []
-_PLAB_instruction_key_allKeys = []
-# keep track of which components have finished
-PLABInstructionComponents = [PLAB_instructions, PLAB_instruction_key]
-for thisComponent in PLABInstructionComponents:
-    thisComponent.tStart = None
-    thisComponent.tStop = None
-    thisComponent.tStartRefresh = None
-    thisComponent.tStopRefresh = None
-    if hasattr(thisComponent, 'status'):
-        thisComponent.status = NOT_STARTED
-# reset timers
-t = 0
-_timeToFirstFrame = win.getFutureFlipTime(clock="now")
-PLABInstructionClock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
-frameN = -1
-
-# -------Run Routine "PLABInstruction"-------
-while continueRoutine:
-    # get current time
-    t = PLABInstructionClock.getTime()
-    tThisFlip = win.getFutureFlipTime(clock=PLABInstructionClock)
-    tThisFlipGlobal = win.getFutureFlipTime(clock=None)
-    frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
-    # update/draw components on each frame
-
-    # *PLAB_instructions* updates
-    if PLAB_instructions.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        PLAB_instructions.frameNStart = frameN  # exact frame index
-        PLAB_instructions.tStart = t  # local t and not account for scr refresh
-        PLAB_instructions.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(PLAB_instructions, 'tStartRefresh')  # time at next scr refresh
-        PLAB_instructions.setAutoDraw(True)
-
-    # *PLAB_instruction_key* updates
-    waitOnFlip = False
-    if PLAB_instruction_key.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        PLAB_instruction_key.frameNStart = frameN  # exact frame index
-        PLAB_instruction_key.tStart = t  # local t and not account for scr refresh
-        PLAB_instruction_key.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(PLAB_instruction_key, 'tStartRefresh')  # time at next scr refresh
-        PLAB_instruction_key.status = STARTED
-        # keyboard checking is just starting
-        waitOnFlip = True
-        win.callOnFlip(PLAB_instruction_key.clock.reset)  # t=0 on next screen flip
-        win.callOnFlip(PLAB_instruction_key.clearEvents, eventType='keyboard')  # clear events on next screen flip
-    if PLAB_instruction_key.status == STARTED and not waitOnFlip:
-        theseKeys = PLAB_instruction_key.getKeys(keyList=['space'], waitRelease=False)
-        _PLAB_instruction_key_allKeys.extend(theseKeys)
-        if len(_PLAB_instruction_key_allKeys):
-            PLAB_instruction_key.keys = _PLAB_instruction_key_allKeys[-1].name  # just the last key pressed
-            PLAB_instruction_key.rt = _PLAB_instruction_key_allKeys[-1].rt
-            # a response ends the routine
-            continueRoutine = False
-
-    # check for quit (typically the Esc key)
-    if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
+routineTimer = core.CountdownTimer(0.5)
+while routineTimer.getTime() > 0:
+    blank.draw()
+    win.flip()
+    if endExpNow or escape_pressed(defaultKeyboard):
         core.quit()
 
-    # check if all components have finished
-    if not continueRoutine:  # a component has requested a forced-end of Routine
-        break
-    continueRoutine = False  # will revert to True if at least one component still running
-    for thisComponent in PLABInstructionComponents:
-        if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-            continueRoutine = True
-            break  # at least one component has not yet finished
-
-    # refresh the screen
-    if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-        win.flip()
-
-# -------Ending Routine "PLABInstruction"-------
-for thisComponent in PLABInstructionComponents:
-    if hasattr(thisComponent, "setAutoDraw"):
-        thisComponent.setAutoDraw(False)
-thisExp.addData('PLAB_instructions.started', PLAB_instructions.tStartRefresh)
-thisExp.addData('PLAB_instructions.stopped', PLAB_instructions.tStopRefresh)
-# check responses
-if PLAB_instruction_key.keys in ['', [], None]:  # No response was made
-    PLAB_instruction_key.keys = None
-thisExp.addData('PLAB_instruction_key.keys',PLAB_instruction_key.keys)
-if PLAB_instruction_key.keys != None:  # we had a response
-    thisExp.addData('PLAB_instruction_key.rt', PLAB_instruction_key.rt)
-thisExp.addData('PLAB_instruction_key.started', PLAB_instruction_key.tStartRefresh)
-thisExp.addData('PLAB_instruction_key.stopped', PLAB_instruction_key.tStopRefresh)
-thisExp.nextEntry()
-# the Routine "PLABInstruction" was not non-slip safe, so reset the non-slip timer
-routineTimer.reset()
-
-# ------Prepare to start Routine "Blank500"-------
-continueRoutine = True
-routineTimer.add(0.500000)
-# update component parameters for each repeat
-# keep track of which components have finished
-Blank500Components = [blank]
-for thisComponent in Blank500Components:
-    thisComponent.tStart = None
-    thisComponent.tStop = None
-    thisComponent.tStartRefresh = None
-    thisComponent.tStopRefresh = None
-    if hasattr(thisComponent, 'status'):
-        thisComponent.status = NOT_STARTED
-# reset timers
-t = 0
-_timeToFirstFrame = win.getFutureFlipTime(clock="now")
-Blank500Clock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
-frameN = -1
-
-# -------Run Routine "Blank500"-------
-while continueRoutine and routineTimer.getTime() > 0:
-    # get current time
-    t = Blank500Clock.getTime()
-    tThisFlip = win.getFutureFlipTime(clock=Blank500Clock)
-    tThisFlipGlobal = win.getFutureFlipTime(clock=None)
-    frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
-    # update/draw components on each frame
-
-    # *blank* updates
-    if blank.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        blank.frameNStart = frameN  # exact frame index
-        blank.tStart = t  # local t and not account for scr refresh
-        blank.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(blank, 'tStartRefresh')  # time at next scr refresh
-        blank.setAutoDraw(True)
-    if blank.status == STARTED:
-        # is it time to stop? (based on global clock, using actual start)
-        if tThisFlipGlobal > blank.tStartRefresh + .5-frameTolerance:
-            # keep track of stop time/frame for later
-            blank.tStop = t  # not accounting for scr refresh
-            blank.frameNStop = frameN  # exact frame index
-            win.timeOnFlip(blank, 'tStopRefresh')  # time at next scr refresh
-            blank.setAutoDraw(False)
-
-    # check for quit (typically the Esc key)
-    if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
-        core.quit()
-
-    # check if all components have finished
-    if not continueRoutine:  # a component has requested a forced-end of Routine
-        break
-    continueRoutine = False  # will revert to True if at least one component still running
-    for thisComponent in Blank500Components:
-        if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-            continueRoutine = True
-            break  # at least one component has not yet finished
-
-    # refresh the screen
-    if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-        win.flip()
-
-# -------Ending Routine "Blank500"-------
-for thisComponent in Blank500Components:
-    if hasattr(thisComponent, "setAutoDraw"):
-        thisComponent.setAutoDraw(False)
-thisExp.addData('blank.started', blank.tStartRefresh)
-thisExp.addData('blank.stopped', blank.tStopRefresh)
+# ========================================= Trials =========================================================
 
 full_trial_list = data.importConditions(PlabStim)
-# task1 contains the first 4 rows of the trial list
 PLAB_task1_list = full_trial_list[:4]
-# task2 contains the rest rows of the trial list
 PLAB_task2_list = full_trial_list[4:]
-# set up handler to look after randomisation of conditions etc
-PLAB_task1_trials = data.TrialHandler(nReps=1.0, method='sequential',
+
+PLAB_pics_1 = visual.ImageStim(
+    win=win, name='plab_task1',
+    image=task1_img,
+    pos=(0, 0.18),
+    size=(1.5, 0.6),
+    color=[1, 1, 1], colorSpace='rgb',
+    ori=0.0,
+    flipHoriz=False, flipVert=False,
+    texRes=128.0, interpolate=False
+)
+
+PLAB_pics_2 = visual.ImageStim(
+    win=win, name='plab_task2',
+    image=task2_img,
+    pos=(0, 0.18),
+    size=(1.5, 0.6),
+    color=[1, 1, 1], colorSpace='rgb',
+    ori=0.0,
+    flipHoriz=False, flipVert=False,
+    texRes=128.0, interpolate=False
+)
+
+
+def run_plab_block(trials, task_name, task_image_stim, keyboard_component):
+    global routineTimer
+
+    for this_trial in trials:
+        valid_answer = False
+        chosen_key = None
+
+        question_id = this_trial['question_id']
+        question = sanitize_text(this_trial['question'])
+        options = [
+            sanitize_text(this_trial['option_a']),
+            sanitize_text(this_trial['option_b']),
+            sanitize_text(this_trial['option_c']),
+            sanitize_text(this_trial['option_d']),
+        ]
+        correct_key = str(this_trial['correct_key'])
+
+        block_img_path = rendered_text_dir / f"{task_name}_{question_id}_block.png"
+        block_img_path, option_boxes_px = render_question_option_block_to_image(
+            question=question,
+            options=options,
+            language_code=language,
+            font_path=font_path,
+            out_path=str(block_img_path),
+            image_width=1600,
+            image_height=700,
+            question_font_size=42 if is_rtl else 44,
+            option_font_size=42 if is_rtl else 44,
+            margin_px=80,
+            line_spacing_px=18,
+            block_gap_px=10
+        )
+
+        block_stim = visual.ImageStim(
+            win=win,
+            image=str(block_img_path),
+            pos=(0, -0.28),
+            size=(1.15, 0.48),
+            units='height',
+            interpolate=True
+        )
+
+        rects_for_this_trial = []
+        img_w_px = 1600
+        img_h_px = 700
+        stim_w_h = 1.15
+        stim_h_h = 0.48
+
+        for (x1, y1, x2, y2) in option_boxes_px:
+            cx_px = (x1 + x2) / 2.0
+            cy_px = (y1 + y2) / 2.0
+            w_px = x2 - x1
+            h_px = y2 - y1
+
+            cx = ((cx_px / img_w_px) - 0.5) * stim_w_h
+            cy = (0.5 - (cy_px / img_h_px)) * stim_h_h - 0.28
+            rw = (w_px / img_w_px) * stim_w_h + 0.05
+            rh = (h_px / img_h_px) * stim_h_h + 0.02
+
+            rects_for_this_trial.append(
+                visual.Rect(
+                    win=win,
+                    width=rw,
+                    height=rh,
+                    pos=(cx, cy),
+                    lineColor='red',
+                    lineWidth=2,
+                    fillColor=None
+                )
+            )
+
+        keyboard_component.keys = []
+        keyboard_component.rt = []
+        keyboard_component.clock.reset()
+        keyboard_component.clearEvents()
+        task_start_time = core.getTime()
+
+        continueRoutine = True
+        while continueRoutine:
+            task_image_stim.draw()
+            block_stim.draw()
+            for rect in rects_for_this_trial:
+                if rect.autoDraw:
+                    rect.draw()
+
+            theseKeys = safe_keyboard_get_keys(keyboard_component)
+            fallback_keys = safe_event_get_keys()
+
+            for key in theseKeys:
+                key_name = normalize_key_name(key.name)
+
+                if key_name in ['1', '2', '3', '4']:
+                    valid_answer = True
+                    chosen_key = key_name
+                    selected_option_index = int(key_name) - 1
+                    for i, rect in enumerate(rects_for_this_trial):
+                        rect.setAutoDraw(i == selected_option_index)
+
+                if key_name in ['space', 'return'] and valid_answer:
+                    keyboard_component.keys = chosen_key
+                    keyboard_component.rt = core.getTime() - task_start_time
+                    for rect in rects_for_this_trial:
+                        rect.setAutoDraw(False)
+                    continueRoutine = False
+                    break
+
+                if key_name == 'escape':
+                    core.quit()
+
+            if continueRoutine:
+                for key_name in fallback_keys:
+                    normalized_key = normalize_key_name(key_name)
+
+                    if normalized_key in ['1', '2', '3', '4']:
+                        valid_answer = True
+                        chosen_key = normalized_key
+                        selected_option_index = int(normalized_key) - 1
+                        for i, rect in enumerate(rects_for_this_trial):
+                            rect.setAutoDraw(i == selected_option_index)
+
+                    if normalized_key in ['space', 'return'] and valid_answer:
+                        keyboard_component.keys = chosen_key
+                        keyboard_component.rt = core.getTime() - task_start_time
+                        for rect in rects_for_this_trial:
+                            rect.setAutoDraw(False)
+                        continueRoutine = False
+                        break
+
+                    if normalized_key == 'escape':
+                        core.quit()
+
+            if continueRoutine:
+                win.flip()
+
+        corr = int(str(keyboard_component.keys) == correct_key)
+
+        thisExp.addData('task', task_name)
+        thisExp.addData('question_id', question_id)
+        thisExp.addData('chosen_key', keyboard_component.keys)
+        thisExp.addData('correctness', corr)
+        thisExp.addData('rt', keyboard_component.rt)
+        thisExp.nextEntry()
+
+        routineTimer = core.CountdownTimer(0.5)
+        while routineTimer.getTime() > 0:
+            fix_cross.draw()
+            win.flip()
+            if endExpNow or escape_pressed(defaultKeyboard):
+                core.quit()
+
+
+PLAB_task1_trials = data.TrialHandler(
+    nReps=1.0, method='sequential',
     trialList=PLAB_task1_list,
-    seed=None, name='PLAB_task1_trials')
-thisExp.addLoop(PLAB_task1_trials)  # add the loop to the experiment
+    seed=random_seed, name='PLAB_task1_trials'
+)
+thisExp.addLoop(PLAB_task1_trials)
+run_plab_block(PLAB_task1_trials, 'task1', PLAB_pics_1, PLAB_task1_key)
 
-mouse = event.Mouse(win=win)
-continueRoutine = True
-routineTimer = core.CountdownTimer()
+PLAB_task2_trials = data.TrialHandler(
+    nReps=1.0, method='sequential',
+    trialList=PLAB_task2_list,
+    seed=random_seed, name='PLAB_task2_trials'
+)
+thisExp.addLoop(PLAB_task2_trials)
+run_plab_block(PLAB_task2_trials, 'task2', PLAB_pics_2, PLAB_task2_key)
 
-for thisPLAB_task1_trial in PLAB_task1_trials:
-    valid_answer = False
-    currentLoop = PLAB_task1_trials
-    question_id = thisPLAB_task1_trial['question_id']
-    question = thisPLAB_task1_trial['question']
-    options = (thisPLAB_task1_trial['option_a'], thisPLAB_task1_trial['option_b'],
-               thisPLAB_task1_trial['option_c'], thisPLAB_task1_trial['option_d'])
-    correct_key = thisPLAB_task1_trial['correct_key']
-    display_text = f"{question}\n\n {options[0]}\n {options[1]}\n {options[2]}\n {options[3]}"
+# ========================================= Done / Goodbye =========================================================
 
-    # ------Prepare to start Routine "PLAB Task1 Trials"-------
-    continueRoutine = True
-    # update component parameters for each repeat
-    PLAB_task1.setText(display_text)
-    PLAB_task1_Components = [PLAB_task1] + highlight_rects  # Add rectangles to the components list
-    # Reset keyboard
-    PLAB_task1_key.keys = []
-    PLAB_task1_key.rt = []
-    _PLAB_task1_key_allKeys = []
-    task_start_time = globalClock.getTime()
+show_text_screen(
+    win=win,
+    text=done_text_str,
+    language_code=language,
+    font_name=font,
+    font_path=font_path,
+    output_dir=rendered_text_dir,
+    image_name='done.png',
+    height=0.035
+)
 
-    # -------Run Routine "PLAB Task1 Trials"-------
-    while continueRoutine:
-        PLAB_pics_1.draw()
-        PLAB_task1.draw()
+if is_rtl:
+    goodbye_img_path = rendered_text_dir / 'goodbye.png'
+    render_text_screen_to_image(
+        text=Goodbyetext_str,
+        language_code=language,
+        font_path=font_path,
+        out_path=str(goodbye_img_path),
+        font_size=52,
+        line_spacing_px=24
+    )
+    goodbye_stim = visual.ImageStim(
+        win=win,
+        image=str(goodbye_img_path),
+        pos=(0, 0),
+        size=(1.8, 1.1),
+        units='norm',
+        interpolate=True
+    )
+else:
+    goodbye_stim = visual.TextStim(
+        win=win,
+        text=clean_ltr_text(Goodbyetext_str),
+        font=font if font else "Arial",
+        pos=(0, 0),
+        height=0.05,
+        wrapWidth=1.3,
+        ori=0.0,
+        color='black',
+        colorSpace='rgb',
+        opacity=None,
+        languageStyle='LTR',
+        alignText='center',
+        anchorHoriz='center',
+        anchorVert='center',
+        depth=0.0
+    )
 
-        # *PLAB_practice_key* updates
-        theseKeys = PLAB_task1_key.getKeys(keyList=['1', '2', '3', '4', 'space', 'escape'], waitRelease=False)
-        for key in theseKeys:
-            if key.name in ['1', '2', '3', '4']:
-                valid_answer = True
-                chosen_key = key.name
-                # Highlight the selected option
-                selected_option_index = int(key.name) - 1
-                for i, rect in enumerate(highlight_rects):
-                    if i == selected_option_index:
-                        rect.setAutoDraw(True)  # Draw the selected rectangle
-                    else:
-                        rect.setAutoDraw(False)  # Hide other rectangles
-
-            if key.name == 'space' and valid_answer:
-                # A valid key was pressed, store the key name and reaction time
-                PLAB_task1_key.keys = chosen_key
-                PLAB_task1_key.rt = key.rt - task_start_time
-                # Clear all components
-                PLAB_task1.setAutoDraw(False)
-                for rect in highlight_rects:
-                    rect.setAutoDraw(False)
-                continueRoutine = False  # End the routine after the space key is pressed
-                break  # Exit the loop after handling the valid response
-
-            if key.name == 'escape':
-                core.quit()  # Exit the experiment if the escape key was pressed
-
-        # check if all components have finished
-        if not continueRoutine:  # a component has requested a forced-end of Routine
-            break
-        continueRoutine = False  # will revert to True if at least one component still running
-        for thisComponent in PLAB_task1_Components:
-            if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-                continueRoutine = True
-                break
-
-        # refresh the screen
-        if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-            win.flip()
-
-    # -------Ending Routine "PLAB Task1 Trials"-------
-    # check responses
-    if PLAB_task1_key.keys in ['', [], None]:  # No response was made
-        PLAB_task1_key.keys = None
-        PLAB_task1_key.corr = int(str(correct_key).lower() == 'none')
-    else:  # we had a response
-        PLAB_task1_key.corr = int(PLAB_task1_key.keys == str(correct_key))
-
-    # Save trial data
-    thisExp.addData('chosen_key', PLAB_task1_key.keys)
-    # thisExp.addData('correct_key', correct_key)
-    thisExp.addData('correctness', PLAB_task1_key.corr)
-    thisExp.addData('rt', PLAB_task1_key.rt)
-
-    routineTimer.reset()
-    thisExp.nextEntry()
-
-    # Add a fixation screen between trials
-    continueRoutine = True
-    fix_cross.tStart = None
-    fix_cross.tStop = None
-    fix_cross.tStartRefresh = None
-    fix_cross.tStopRefresh = None
-    routineTimer.reset()
-    routineTimer.add(0.5)  # display fixation cross for 500 ms
-
-    while continueRoutine and routineTimer.getTime() > 0:
-        fix_cross.draw()
-        win.flip()
-        if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
-            core.quit()
-# completed 'PLAB task 1 trials'
-
-# set up handler to look after randomisation of conditions etc
-PLAB_task2_trials = data.TrialHandler(nReps=1.0, method='sequential',
-                                      trialList=PLAB_task2_list,
-                                      seed=None, name='PLAB_task2_trials')
-thisExp.addLoop(PLAB_task2_trials)  # add the loop to the experiment
-
-for thisPLAB_task2_trial in PLAB_task2_trials:
-    valid_answer = False
-    currentLoop = PLAB_task2_trials
-    question_id = thisPLAB_task2_trial['question_id']
-    question = thisPLAB_task2_trial['question']
-    options = (thisPLAB_task2_trial['option_a'], thisPLAB_task2_trial['option_b'],
-               thisPLAB_task2_trial['option_c'], thisPLAB_task2_trial['option_d'])
-    correct_key = thisPLAB_task2_trial['correct_key']
-    display_text = f"{question}\n\n {options[0]}\n {options[1]}\n {options[2]}\n {options[3]}"
-
-    # ------Prepare to start Routine "PLAB Task2 Trials"-------
-    continueRoutine = True
-    # update component parameters for each repeat
-    PLAB_task2.setText(display_text)
-    PLAB_task2_Components = [PLAB_task1]
-    # Reset keyboard
-    PLAB_task2_key.keys = []
-    PLAB_task2_key.rt = []
-    _PLAB_task2_key_allKeys = []
-    task_start_time = globalClock.getTime()
-
-    # -------Run Routine "PLAB Task2 Trials"-------
-    while continueRoutine:
-        PLAB_pics_2.draw()
-        PLAB_task2.draw()
-
-        # *PLAB_practice_key* updates
-        theseKeys = PLAB_task2_key.getKeys(keyList=['1', '2', '3', '4', 'space', 'escape'], waitRelease=False)
-        for key in theseKeys:
-            if key.name in ['1', '2', '3', '4']:
-                valid_answer = True
-                chosen_key = key.name
-                # Highlight the selected option
-                selected_option_index = int(key.name) - 1
-                for i, rect in enumerate(highlight_rects):
-                    if i == selected_option_index:
-                        rect.setAutoDraw(True)  # Draw the selected rectangle
-                    else:
-                        rect.setAutoDraw(False)  # Hide other rectangles
-            if key.name == 'space' and valid_answer:
-                # A valid key was pressed, store the key name and reaction time
-                PLAB_task2_key.keys = chosen_key
-                PLAB_task2_key.rt = key.rt - task_start_time
-                # Clear all components
-                PLAB_task2.setAutoDraw(False)
-                for rect in highlight_rects:
-                    rect.setAutoDraw(False)
-                continueRoutine = False  # End the routine after the space key is pressed
-                break  # Exit the loop after handling the valid response
-
-            if key.name == 'escape':
-                core.quit()  # Exit the experiment if the escape key was pressed
-
-        # check if all components have finished
-        if not continueRoutine:  # a component has requested a forced-end of Routine
-            break
-        continueRoutine = False  # will revert to True if at least one component still running
-        for thisComponent in PLAB_task2_Components:
-            if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-                continueRoutine = True
-                break
-
-        # refresh the screen
-        if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-            win.flip()
-
-    # -------Ending Routine "PLAB Task2 Trials"-------
-    # check responses
-    if PLAB_task2_key.keys in ['', [], None]:  # No response was made
-        PLAB_task2_key.keys = None
-        PLAB_task2_key.corr = int(str(correct_key).lower() == 'none')
-    else:  # we had a response
-        PLAB_task2_key.corr = int(PLAB_task2_key.keys == str(correct_key))
-
-    # Save trial data
-    thisExp.addData('chosen_key', PLAB_task2_key.keys)
-    # thisExp.addData('correct_key', correct_key)
-    thisExp.addData('correctness', PLAB_task2_key.corr)
-    thisExp.addData('rt', PLAB_task2_key.rt)
-
-    routineTimer.reset()
-    thisExp.nextEntry()
-
-    # Add a fixation screen between trials
-    continueRoutine = True
-    fix_cross.tStart = None
-    fix_cross.tStop = None
-    fix_cross.tStartRefresh = None
-    fix_cross.tStopRefresh = None
-    routineTimer.reset()
-    routineTimer.add(0.5)  # display fixation cross for 500 ms
-
-    while continueRoutine and routineTimer.getTime() > 0:
-        fix_cross.draw()
-        win.flip()
-        if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
-            core.quit()
-
-# completed 'PLAB Task2 trials'
-
-# ------Prepare to start Routine "Done"-------
-continueRoutine = True
-# update component parameters for each repeat
-done_key.keys = []
-done_key.rt = []
-_done_key_allKeys = []
-# keep track of which components have finished
-DoneComponents = [done_text, done_key]
-for thisComponent in DoneComponents:
-    thisComponent.tStart = None
-    thisComponent.tStop = None
-    thisComponent.tStartRefresh = None
-    thisComponent.tStopRefresh = None
-    if hasattr(thisComponent, 'status'):
-        thisComponent.status = NOT_STARTED
-# reset timers
-t = 0
-_timeToFirstFrame = win.getFutureFlipTime(clock="now")
-DoneClock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
-frameN = -1
-
-# -------Run Routine "Done"-------
-while continueRoutine:
-    # get current time
-    t = DoneClock.getTime()
-    tThisFlip = win.getFutureFlipTime(clock=DoneClock)
-    tThisFlipGlobal = win.getFutureFlipTime(clock=None)
-    frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
-    # update/draw components on each frame
-
-    # *done_text* updates
-    if done_text.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        done_text.frameNStart = frameN  # exact frame index
-        done_text.tStart = t  # local t and not account for scr refresh
-        done_text.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(done_text, 'tStartRefresh')  # time at next scr refresh
-        done_text.setAutoDraw(True)
-
-    # *done_key* updates
-    waitOnFlip = False
-    if done_key.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-        # keep track of start time/frame for later
-        done_key.frameNStart = frameN  # exact frame index
-        done_key.tStart = t  # local t and not account for scr refresh
-        done_key.tStartRefresh = tThisFlipGlobal  # on global time
-        win.timeOnFlip(done_key, 'tStartRefresh')  # time at next scr refresh
-        done_key.status = STARTED
-        # keyboard checking is just starting
-        waitOnFlip = True
-        win.callOnFlip(done_key.clock.reset)  # t=0 on next screen flip
-        win.callOnFlip(done_key.clearEvents, eventType='keyboard')  # clear events on next screen flip
-    if done_key.status == STARTED and not waitOnFlip:
-        theseKeys = done_key.getKeys(keyList=['space'], waitRelease=False)
-        _done_key_allKeys.extend(theseKeys)
-        if len(_done_key_allKeys):
-            done_key.keys = _done_key_allKeys[-1].name  # just the last key pressed
-            done_key.rt = _done_key_allKeys[-1].rt
-            # a response ends the routine
-            continueRoutine = False
-
-    # check for quit (typically the Esc key)
-    if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
-        core.quit()
-
-    # check if all components have finished
-    if not continueRoutine:  # a component has requested a forced-end of Routine
-        break
-    continueRoutine = False  # will revert to True if at least one component still running
-    for thisComponent in DoneComponents:
-        if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-            continueRoutine = True
-            break  # at least one component has not yet finished
-
-    # refresh the screen
-    if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-        win.flip()
-
-# -------Ending Routine "Done"-------
-for thisComponent in DoneComponents:
-    if hasattr(thisComponent, "setAutoDraw"):
-        thisComponent.setAutoDraw(False)
-thisExp.addData('done_text.started', done_text.tStartRefresh)
-thisExp.addData('done_text.stopped', done_text.tStopRefresh)
-# check responses
-if done_key.keys in ['', [], None]:  # No response was made
-    done_key.keys = None
-thisExp.addData('done_key.keys',done_key.keys)
-if done_key.keys != None:  # we had a response
-    thisExp.addData('done_key.rt', done_key.rt)
-thisExp.addData('done_key.started', done_key.tStartRefresh)
-thisExp.addData('done_key.stopped', done_key.tStopRefresh)
-thisExp.nextEntry()
-
-# the Routine "Done" was not non-slip safe, so reset the non-slip timer
-routineTimer.reset()
-
-
-# # ------Prepare to start Routine "GoodbyeScreen"-------
-# continueRoutine = True
-# routineTimer.add(10.000000)
-# # update component parameters for each repeat
-# key_goodbye.keys = []
-# key_goodbye.rt = []
-# _key_goodbye_allKeys = []
-# # keep track of which components have finished
-# GoodbyeScreenComponents = [Goodbyetext, key_goodbye]
-# for thisComponent in GoodbyeScreenComponents:
-#     thisComponent.tStart = None
-#     thisComponent.tStop = None
-#     thisComponent.tStartRefresh = None
-#     thisComponent.tStopRefresh = None
-#     if hasattr(thisComponent, 'status'):
-#         thisComponent.status = NOT_STARTED
-# # reset timers
-# t = 0
-# _timeToFirstFrame = win.getFutureFlipTime(clock="now")
-# GoodbyeScreenClock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
-# frameN = -1
-#
-# # -------Run Routine "GoodbyeScreen"-------
-# while continueRoutine and routineTimer.getTime() > 0:
-#     # get current time
-#     t = GoodbyeScreenClock.getTime()
-#     tThisFlip = win.getFutureFlipTime(clock=GoodbyeScreenClock)
-#     tThisFlipGlobal = win.getFutureFlipTime(clock=None)
-#     frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
-#     # update/draw components on each frame
-#
-#     # *Goodbyetext* updates
-#     if Goodbyetext.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-#         # keep track of start time/frame for later
-#         Goodbyetext.frameNStart = frameN  # exact frame index
-#         Goodbyetext.tStart = t  # local t and not account for scr refresh
-#         Goodbyetext.tStartRefresh = tThisFlipGlobal  # on global time
-#         win.timeOnFlip(Goodbyetext, 'tStartRefresh')  # time at next scr refresh
-#         Goodbyetext.setAutoDraw(True)
-#     if Goodbyetext.status == STARTED:
-#         # is it time to stop? (based on global clock, using actual start)
-#         if tThisFlipGlobal > Goodbyetext.tStartRefresh + 10-frameTolerance:
-#             # keep track of stop time/frame for later
-#             Goodbyetext.tStop = t  # not accounting for scr refresh
-#             Goodbyetext.frameNStop = frameN  # exact frame index
-#             win.timeOnFlip(Goodbyetext, 'tStopRefresh')  # time at next scr refresh
-#             Goodbyetext.setAutoDraw(False)
-#
-#     # *key_goodbye* updates
-#     waitOnFlip = False
-#     if key_goodbye.status == NOT_STARTED and tThisFlip >= 0.0-frameTolerance:
-#         # keep track of start time/frame for later
-#         key_goodbye.frameNStart = frameN  # exact frame index
-#         key_goodbye.tStart = t  # local t and not account for scr refresh
-#         key_goodbye.tStartRefresh = tThisFlipGlobal  # on global time
-#         win.timeOnFlip(key_goodbye, 'tStartRefresh')  # time at next scr refresh
-#         key_goodbye.status = STARTED
-#         # keyboard checking is just starting
-#         waitOnFlip = True
-#         win.callOnFlip(key_goodbye.clock.reset)  # t=0 on next screen flip
-#         win.callOnFlip(key_goodbye.clearEvents, eventType='keyboard')  # clear events on next screen flip
-#     if key_goodbye.status == STARTED:
-#         # is it time to stop? (based on global clock, using actual start)
-#         if tThisFlipGlobal > key_goodbye.tStartRefresh + 10-frameTolerance:
-#             # keep track of stop time/frame for later
-#             key_goodbye.tStop = t  # not accounting for scr refresh
-#             key_goodbye.frameNStop = frameN  # exact frame index
-#             win.timeOnFlip(key_goodbye, 'tStopRefresh')  # time at next scr refresh
-#             key_goodbye.status = FINISHED
-#     if key_goodbye.status == STARTED and not waitOnFlip:
-#         theseKeys = key_goodbye.getKeys(keyList=['space'], waitRelease=False)
-#         _key_goodbye_allKeys.extend(theseKeys)
-#         if len(_key_goodbye_allKeys):
-#             key_goodbye.keys = _key_goodbye_allKeys[-1].name  # just the last key pressed
-#             key_goodbye.rt = _key_goodbye_allKeys[-1].rt
-#             # a response ends the routine
-#             continueRoutine = False
-#
-#     # check for quit (typically the Esc key)
-#     if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
-#         core.quit()
-#
-#     # check if all components have finished
-#     if not continueRoutine:  # a component has requested a forced-end of Routine
-#         break
-#     continueRoutine = False  # will revert to True if at least one component still running
-#     for thisComponent in GoodbyeScreenComponents:
-#         if hasattr(thisComponent, "status") and thisComponent.status != FINISHED:
-#             continueRoutine = True
-#             break  # at least one component has not yet finished
-#
-#     # refresh the screen
-#     if continueRoutine:  # don't flip if this routine is over or we'll get a blank screen
-#         win.flip()
-#
-# # -------Ending Routine "GoodbyeScreen"-------
-# for thisComponent in GoodbyeScreenComponents:
-#     if hasattr(thisComponent, "setAutoDraw"):
-#         thisComponent.setAutoDraw(False)
-# thisExp.addData('Goodbyetext.started', Goodbyetext.tStartRefresh)
-# thisExp.addData('Goodbyetext.stopped', Goodbyetext.tStopRefresh)
-# # check responses
-# if key_goodbye.keys in ['', [], None]:  # No response was made
-#     key_goodbye.keys = None
-# thisExp.addData('key_goodbye.keys',key_goodbye.keys)
-# if key_goodbye.keys != None:  # we had a response
-#     thisExp.addData('key_goodbye.rt', key_goodbye.rt)
-# thisExp.addData('key_goodbye.started', key_goodbye.tStartRefresh)
-# thisExp.addData('key_goodbye.stopped', key_goodbye.tStopRefresh)
-# thisExp.nextEntry()
-
-# Flip one final time so any remaining win.callOnFlip() 
-# and win.timeOnFlip() tasks get executed before quitting
+goodbye_stim.draw()
 win.flip()
 
-# these shouldn't be strictly necessary (should auto-save)
-thisExp.saveAsWideText(filename+'.csv', delim='auto')
+# clear old keypresses from the previous screen
+event.clearEvents(eventType='keyboard')
+core.wait(0.15)
+
+# wait up to 10 seconds, or continue immediately on space/return
+keys = event.waitKeys(maxWait=10.0, keyList=['space', 'return', 'escape'])
+if keys and 'escape' in keys:
+    win.close()
+    core.quit()
+
+win.flip()
+
+thisExp.saveAsWideText(filename + '.csv', delim='auto')
 thisExp.saveAsPickle(filename)
 logging.flush()
-# make sure everything is closed down
-thisExp.abort()  # or data files will save again on exit
+
+thisExp.abort()
 win.close()
 # core.quit()
