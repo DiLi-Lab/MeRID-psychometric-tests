@@ -204,6 +204,8 @@ The participant-specific YAML config is also saved in the participant folder.
 │
 ├── .gitignore                <- Git ignore rules
 ├── .project-root             <- Marker file used to infer repository root
+├── LICENSE                   <- Project license (GPL-2.0)
+├── NOTICE                    <- Third-party attribution notices
 ├── requirements.txt          <- Python dependencies
 └── README.md                 <- Project setup and usage documentation
 ```

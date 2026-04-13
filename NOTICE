@@ -1,0 +1,60 @@
+NOTICE
+======
+
+This software includes components from various third-party projects.
+
+License Information
+-------------------
+
+This project is licensed under the GNU General Public License v2 (GPL-2.0).
+See the LICENSE file for details.
+
+Third-Party Components
+-----------------------
+
+1. WMC (Working Memory Capacity) Task
+   - Original: python-wmc-battery (https://github.com/aeye-lab/python-wmc-battery)
+   - License: MIT
+   - See: tasks/WMC/LICENSE
+
+2. RAN (Rapid Automatized Naming) Task
+   - Original: py-ran-task (https://github.com/bnicenboim/py-ran-task)
+   - License: GPL-2.0
+   - See: tasks/RAN/LICENSE
+
+3. WikiVocab Task
+   - Original: VocabTest (https://github.com/polvanrijn/VocabTest)
+   - License: Not specified (no LICENSE file in original)
+   - Citation: van Rijn, P. et al. (2023). Around the world in 60 words. arXiv:2302.01614
+   - See: tasks/WikiVocab/NOTICE
+
+4. Stroop-Flanker Task
+   - Original: stroop-simon-german (https://github.com/DiLi-Lab/stroop-simon-german)
+   - License: Not specified (no LICENSE file in original)
+   - Based on paradigms: Stroop (1935), Eriksen & Eriksen (1974)
+   - See: tasks/Stroop-Flanker/NOTICE
+
+5. PLAB Task
+   - Original: None (custom implementation based on paper-and-pencil test)
+   - License: GPL-2.0 (same as project root)
+
+6. WCST (Wisconsin Card Sorting Test) Task
+   - Original: WCST (PsychoPy edition) (https://github.com/OttoKuosmanen/WCST)
+   - Original Authors: Otto Kuosmanen (Keijumies) and contributors
+   - License: MIT
+   - Reference: Berg, E. A. (1948). A Simple Objective Technique for Measuring Flexibility in Thinking.
+   - See: tasks/WCST/NOTICE and tasks/WCST/LICENSE
+
+7. PPVT (Peabody Picture Vocabulary Test) Task
+   - Original: None (custom implementation based on paper-and-pencil test)
+   - Source context: tasks/Peabody/ppvt_v1.py (PsychoPy Builder-generated base script)
+   - License: Not separately specified in this repository
+   - Distribution in this repository: GPL-2.0 (same as project root)
+
+Attribution
+-----------
+
+Each task folder contains its own LICENSE or NOTICE file with specific
+attribution and modification notes for that component.
+
+Copyright (C) 2024-2026 MeRID Project
