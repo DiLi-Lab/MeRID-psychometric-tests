@@ -87,7 +87,7 @@ country_code: X
 year: 2025
 lab_number: 1
 random_seed: 123
-font: Arial Unicode MS
+font: Segoe UI
 ```  
 It will run all tasks set to `True` in `config.yaml`. In the current MeRID protocol, you should run tests in two sessions:
 - Session 1: RAN, Stroop-Flanker, PLAB, WikiVocab, Peabody (German only), WCST
@@ -112,6 +112,7 @@ To follow the MeRID two-session protocol, set `wmc: False` for session 1 and set
 - Outputs are saved under `data/MultiplEYE_<LANG>_<COUNTRY>_<LAB>_<YEAR>/<PARTICIPANT>_<LANG>_<COUNTRY>_<LAB>_PT<SESSION>/`.
 
 **Note**:
+- Depends on your computer system (Mac, Windows, Linux) and the language you are going to run (e.g., English, Chinese, Persian, etc.), you may need to choose a suitable font for the experiment. The default font is `Segoe UI`, which supports most Latin and Cyrillic languages. If you are running Chinese in a Windows machine, you may need to choose a Chinese font like `Microsoft YaHei` or `SimSun`. We suggest you first try `Segoe UI` or `Arial Unicode MS` to see whether it can display all the characters correctly, and then try other fonts if you encounter any issues.
 - Depends on your computer system, you may need to enable the audio input and output for the RAN task. If you encounter any issues with the audio input and output, please refer to the [PsychoPy documentation](https://www.psychopy.org/).
   - For Mac users, you may need to go to `System Preferences` -> `Security & Privacy` -> `Privacy` -> `Microphone` and enable your terminal or IDE to access the microphone.
   - For Windows users, you may need to go to `Settings` -> `Privacy` -> `Microphone` and enable your terminal or IDE to access the microphone.
@@ -147,7 +148,7 @@ country_code: CH
 year: 2025
 lab_number: 2
 random_seed: 123
-font: Arial Unicode MS
+font: Segoe UI
 ```
 5. If you want to run only some of the tests, change the corresponding values to `False` in the `config.yaml` file. For example, if you only want to run the WMC battery and the PLAB test throughout the whole experiment, the settings would be:
 ```yaml

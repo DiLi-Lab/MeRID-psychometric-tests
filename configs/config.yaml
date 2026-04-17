@@ -5,7 +5,7 @@ country_code: CH
 year: 2025  # estimated end year of the experiment, e.g., 2024.
 lab_number: 1
 random_seed: 123  # Alternative: None. Random seed for reproducibility across runs and participants. Try to keep this fixed. If you want different random seeds for different participants, you can set this to None and the random seed will be randomly generated.
-font: Segoe UI     # Default font used for the experiment.
+font: Segoe UI     # Default font used for the experiment, supporting most Latin and Cyrillic languages. Please choose a font that is suitable for the language and operating system you are running the experiment in. E.g., Microsft YaHei for Chinese etc.
 ran: True    # Alternative: False, if you want to run the experiment without the RAN tasks.
 stroop_flanker: True  # Alternative: False, if you want to run the experiment without the Stroop and Flanker tasks.
 plab: True    # Alternative: False, if you want to run the experiment without the PLAB tasks.

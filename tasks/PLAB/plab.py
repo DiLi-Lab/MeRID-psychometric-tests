@@ -634,6 +634,7 @@ event.clearEvents(eventType='keyboard')
 expInfo['frameRate'] = None
 defaultKeyboard = keyboard.Keyboard()
 font_path = choose_font_path(language, font)
+print(f"[PLAB] Question/options font path: {font_path}")
 
 # ========================================= Basic components =========================================================
 
